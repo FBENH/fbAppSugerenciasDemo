@@ -1,0 +1,129 @@
+﻿@page "/Detalles/{Id}"
+@inject AuthenticationStateProvider authProvider
+@inject IUserData userData
+@inject IMongoSugerenciaData sugerenciaData
+@inject NavigationManager navManager
+@inject IStatusData estadoData
+
+<h1 class="page-heading text-uppercase mb-4">Detalles de la sugerencia</h1>
+<div class="row justify-content-center detalle-form">
+    <div class="col-xl-8 col-lg-10 form-layout">
+        @if(sugerencia is not null)
+        {
+            <div class="row sugerencia-detalle-row">
+                <div class="col-11 sugerencia-detalle">
+                    <div>
+                        <div class="@GetVoteClass()" @onclick="Votar">
+                        <div class="text-uppercase">@GetUpvoteTopText()</div>
+                        <span class="oi oi-caret-top detalle-voto"></span>
+                        <div class="text-uppercase">@GetUpvoteBottomText()</div>
+                    </div>                    
+                    <div class="sugerencia-detalle-fecha">
+                        <div>@sugerencia.FechaCreacion.ToString("dd.MM.yyyy")</div>
+                    </div>
+                    </div>
+                    <div class="sugerencia-detalle-text">
+                        <div class="fw-bold mb-2 sugerencia-detalle-sugerencia">@sugerencia.Sugerencia</div>
+                        <div class="mb-2 sugerencia-detalle-autor">@sugerencia.Autor.DisplayName</div>
+                        <div class="mb-2 d-none d-md-block">@sugerencia.Descripcion</div>
+                        <div class="sugerencia-entry-text-categoria d-none d-md-block">
+                            @sugerencia.Categoria.CategoriaNombre
+                        </div>
+                    </div>
+                </div>                
+                <div class="col-1 close-button-section">
+                    <button class="btn btn-close" @onclick="ClosePage"></button>
+                </div>
+            </div>
+            <div class="row d-block d-md-none">
+                <div class="sugerencia-detalle-text">
+                    <div>@sugerencia.Descripcion</div>
+                    <div class="sugerencia-entry-text-categoria">@sugerencia.Categoria.CategoriaNombre</div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@if(sugerencia?.SugerenciaEstado is not null)
+{
+    <div class="row justify-content-center detalle-form">
+        <div class="col-xl-8 col-lg-10 sugerencia-resultados form-layout">
+            <div class="@GetEstadoClass()"></div>
+            <div class="sugerencia-detalle-estado-section">
+                <div class="sugerencia-detalle-estado fw-bold mb-2 sugerencia-detalle-sugerencia">
+                    @sugerencia.SugerenciaEstado.EstadoNombre
+                </div>
+                <div class="sugerencia-detalle-notas-admin">
+                    @((MarkupString)sugerencia.NotasAdmins)
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if(sugerencia is not null)
+{
+    <AuthorizeView Policy="Admin">
+        <div class="row justify-content-center detalle-form">
+            <div class="col-xl-8 col-lg-10 form-layout admin-detalles">
+                <div>
+                    <div class="sugerencia-detalle-estado fw-bold sugerencia-detalle-sugerencia">
+                        Agregar estado
+                    </div>
+                    @if(string.IsNullOrWhiteSpace(settingEstado))
+                    {
+                        <div class="admin-set-estados">
+                            <button @onclick="@(()=>settingEstado="completado")"
+                                class="btn sugerencia-entry-text-categoria btn-archivar btn-estado-completado">
+                                Completado    
+                            </button>                       
+                            <button @onclick="@(()=>settingEstado="en revisión")"
+                            class="btn sugerencia-entry-text-categoria btn-archivar btn-estado-en-revision">
+                                En revisión
+                            </button>                    
+                            <button @onclick="@(()=>settingEstado="proximamente")"
+                                class="btn sugerencia-entry-text-categoria btn-archivar btn-estado-proximamente">
+                                Proximamente    
+                            </button>                     
+                            <button @onclick="@(()=>settingEstado="rechazada")"
+                                class="btn sugerencia-entry-text-categoria btn-archivar btn-estado-rechazada">
+                                Rechazada    
+                            </button>
+                        </div>
+                    }
+                    else if(settingEstado=="completado")
+                    {
+                        <div>
+                            <input @bind="urlText" class="form-control rounded-control" type="text"
+                                    placeholder="Url" aria-label="Content Url" />
+                        </div>
+                        <div class="sugerencia-entry-bottom">
+                            <button class="btn btn-archivar btn-archivar-confirmar" 
+                            @onclick="CompletarSetEstado">
+                                Confirmar
+                            </button>
+                            <button class="btn btn-archivar btn-archivar-rechazar" 
+                            @onclick="(()=>settingEstado=null)">
+                                Cancelar
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="sugerencia-entry-bottom">
+                            <button class="btn btn-archivar btn-archivar-confirmar" 
+                            @onclick="CompletarSetEstado">
+                                Confirmar
+                            </button>
+                            <button class="btn btn-archivar btn-archivar-rechazar" 
+                            @onclick="(()=>settingEstado=null)">
+                                Cancelar
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </AuthorizeView>
+}

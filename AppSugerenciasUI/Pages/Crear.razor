@@ -1,0 +1,55 @@
+﻿@page "/Crear"
+@attribute [Authorize]
+@using AppSugerenciasUI.Components
+@using AppSugerenciasUI.Models;
+@inject AuthenticationStateProvider authProvider
+@inject ICategoryData categoriaData
+@inject IMongoSugerenciaData sugerenciaData
+@inject IUserData userData
+@inject NavigationManager navManager
+
+<h1 class="page-heading text-uppercase mb-4">Hacer una sugerencia</h1>
+
+<div class="row justify-content-center create-form">
+    <div class="col-xl-8 col-lg-10 form-layout">
+        <div class="close-button-section">
+            <button class="btn btn-close" @onclick="ClosePage"></button>
+        </div>
+        @if(categorias is not null)
+        {
+            <EditForm Model="sugerencia" OnValidSubmit="CrearSugerencia">
+                <DataAnnotationsValidator/>
+                <ValidationSummary/>
+                <div class="input-section">
+                    <label class="form-label fw-bold text-uppercase" for="sugerencia-text">Sugerencia</label>
+                    <div class="input-description">Has enfásis en el tema que quieres aprender.</div>
+                    <InputText class="form-control" id="sugerencia-text" @bind-Value="sugerencia.Sugerencia"/>
+                </div>
+                <div class="input-section">
+                    <label class="form-label fw-bold text-uppercase" for="categoria">Categoría</label>
+                    <div class="input-description">Elige una categoría.</div>
+                    <div class="col-lg-8">
+                        <MyInputRadioGroup id="categoria" @bind-Value="sugerencia.CategoriaId">
+                            @foreach(var c in categorias)
+                            {
+                                <div class="radio-item-group">
+                                    <InputRadio Value="@c.Id" id="@c.Id"/>
+                                    <label for="@c.Id">@c.CategoriaNombre - @c.CategoriaDescripcion</label>
+                                </div>
+                            }
+                        </MyInputRadioGroup>
+                    </div>
+                    </div>
+                <div class="input-section">
+                    <label class="form-label fw-bold text-uppercase" for="descripcion">Descripción</label>
+                    <div class="input-description">Describa su sugerencia de forma breve.</div>
+                    <InputTextArea class="form-control" id="descripcion" @bind-Value="sugerencia.Descripcion" />
+                </div>
+                <div class="center-children">
+                    <button class="btn btn-main btn-lg text-uppercase" type="submit">Sugerir</button>
+                </div>
+            </EditForm>
+        }
+
+    </div>
+</div>

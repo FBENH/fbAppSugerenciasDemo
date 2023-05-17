@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>    
+    <ImplicitUsings>enable</ImplicitUsings>    
+    <UserSecretsId>9340a16e-6bea-4f78-b3fc-c4e97a6322b9</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EditorConfigFiles Remove="C:\Users\Fede\Desktop\SueggestionsApp\AppSugerencias\AppSugerenciasUI\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="C:\Users\Fede\Desktop\SueggestionsApp\AppSugerencias\AppSugerenciasUI\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Identity.Web" Version="1.21.1" />
+    <PackageReference Include="Microsoft.Identity.Web.UI" Version="1.21.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SuegerenciasAppLibrary\SuegerenciasAppLibrary.csproj" />
+  </ItemGroup>
+
+</Project>

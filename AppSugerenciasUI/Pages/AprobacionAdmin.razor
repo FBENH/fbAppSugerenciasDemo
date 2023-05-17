@@ -1,0 +1,73 @@
+﻿@page "/AprobacionAdmin"
+@attribute [Authorize(Policy ="Admin")]
+@inject IMongoSugerenciaData sugerenciaData
+@inject IUserData userData
+@inject NavigationManager navManager
+
+<h1 class="page-heading text-uppercase mb-4">Sugerencias pendientes.</h1>
+
+<div class="row">
+    <div class="sugerencias-count col-8 mt-2">@sugerencias?.Count Sugerencias</div>
+    <div class="col-4 close-button-section">
+        <button class="btn btn-close" @onclick="ClosePage"></button>
+    </div>
+</div>
+
+@if(sugerencias is not null)
+{
+    foreach(var s in sugerencias)
+    {
+        <div class="row submission">
+            <div class="col-lg-2 col-md-3 col-sm-4">
+                <button class="btn btn-aprobar" @onclick="(()=>AprobarSugerencia(s))">Aprobar</button>
+                <button class="btn btn-rechazar" @onclick="(()=>RechazarSugerencia(s))">Rechazar</button>
+            </div>
+            <div class="col-lg-10 col-md-9 col-sm-8">
+                <div>
+                    @if(editandoTitulo == s.Id)
+                    {
+                        <EditForm class="aprobar-edit-form" Model="@tituloEditado" OnSubmit="(()=> GuardarTitulo(s))">
+                            <InputText class="form-control aprobar-edit-field" @bind-Value="tituloEditado" />
+                            <button class="btn" type="submit">
+                                <span class="oi oi-check submission-edit-aprobar"></span>
+                            </button>
+                            <button type="button" class="btn" @onclick="(()=> editandoTitulo=string.Empty)">
+                                <span class="oi oi-x submission-edit-rechazar"></span>
+                            </button>
+                        </EditForm>
+                    }
+                    else
+                    {
+                        @s.Sugerencia
+                        <span class="oi oi-pencil submission-edit-icon" @onclick="(()=>EditarTitulo(s))"></span>
+                    }
+                </div>
+                <div>
+                    @s.Categoria.CategoriaNombre
+                </div>
+                <div>
+                    @s.Autor.DisplayName
+                </div>
+                <div>
+                    @if(editandoDescripcion==s.Id)
+                    {
+                        <EditForm class="aprobar-edit-form" Model="@descripcionEditada" OnSubmit="(()=>GuardarDescripcion(s))">
+                            <InputText class="form-control aprobar-edit-field" @bind-Value="descripcionEditada" />
+                            <button class="btn" type="submit">
+                                <span class="oi oi-check submission-edit-aprobar"></span>
+                            </button>
+                            <button type="button" class="btn submission-edit-rechazar" @onclick="(()=> editandoDescripcion=string.Empty)">
+                                <span class="oi oi-x"></span>
+                            </button>
+                        </EditForm>
+                    }
+                    else
+                    {
+                        @s.Descripcion
+                        <span class="oi oi-pencil submission-edit-icon" @onclick="(()=>EditarDescripcion(s))"></span>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+}
