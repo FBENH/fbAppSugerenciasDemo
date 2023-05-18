@@ -281,7 +281,7 @@ public partial class Index
         string output = sugerencia.SugerenciaEstado.EstadoNombre switch
         {
             "Completado" => "sugerencia-entry-estado-completado",
-            "En revisión" => "sugerencia-entry-estado-en-revision",
+            "En revision" => "sugerencia-entry-estado-en-revision",
             "Proximamente" => "sugerencia-entry-estado-proximamente",
             "Rechazada" => "sugerencia-entry-estado-rechazada",
             _ => "sugerencia-entry-estado-ninguno"
