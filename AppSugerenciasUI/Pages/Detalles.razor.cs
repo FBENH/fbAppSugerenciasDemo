@@ -29,11 +29,11 @@ public partial class Detalles
                 }
 
                 sugerencia.SugerenciaEstado = estados.Where(s => s.EstadoNombre.ToLower() == settingEstado.ToLower()).First();
-                sugerencia.NotasAdmins = $"Creamos un recurso sobre ese tema aquí: <a href={urlText}' target='_blank'>{urlText}</a>";
+                sugerencia.NotasAdmins = $"Creamos un recurso sobre ese tema aqui: <a href={urlText}' target='_blank'>{urlText}</a>";
                 break;
-            case "en revisión":
+            case "en revision":
                 sugerencia.SugerenciaEstado = estados.Where(s => s.EstadoNombre.ToLower() == settingEstado.ToLower()).First();
-                sugerencia.NotasAdmins = "Estamos evaluando el interés que esta sugerencia genera.";
+                sugerencia.NotasAdmins = "Estamos evaluando esta sugerencia.";
                 break;
             case "proximamente":
                 sugerencia.SugerenciaEstado = estados.Where(s => s.EstadoNombre.ToLower() == settingEstado.ToLower()).First();
@@ -41,7 +41,7 @@ public partial class Detalles
                 break;
             case "rechazada":
                 sugerencia.SugerenciaEstado = estados.Where(s => s.EstadoNombre.ToLower() == settingEstado.ToLower()).First();
-                sugerencia.NotasAdmins = "Después de una cuidadosa consideración y análisis interno, hemos decidido no implementar tu sugerencia en este momento.";
+                sugerencia.NotasAdmins = "Hemos decidido no implementar tu sugerencia en este momento.";
                 break;
             default:
                 return;
@@ -141,7 +141,7 @@ public partial class Detalles
         string output = sugerencia.SugerenciaEstado.EstadoNombre switch
         {
             "Completado" => "sugerencia-detalle-estado-completado",
-            "En revisión" => "sugerencia-detalle-estado-en-revision",
+            "En revisiÃ³n" => "sugerencia-detalle-estado-en-revision",
             "Proximamente" => "sugerencia-detalle-estado-proximamente",
             "Rechazada" => "sugerencia-detalle-estado-rechazada",
             _ => "sugerencia-detalle-estado-ninguno"
