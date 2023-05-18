@@ -141,7 +141,7 @@ public partial class Detalles
         string output = sugerencia.SugerenciaEstado.EstadoNombre switch
         {
             "Completado" => "sugerencia-detalle-estado-completado",
-            "En revisión" => "sugerencia-detalle-estado-en-revision",
+            "En revision" => "sugerencia-detalle-estado-en-revision",
             "Proximamente" => "sugerencia-detalle-estado-proximamente",
             "Rechazada" => "sugerencia-detalle-estado-rechazada",
             _ => "sugerencia-detalle-estado-ninguno"
