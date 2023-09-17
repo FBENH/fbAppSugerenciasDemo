@@ -29,7 +29,7 @@ public partial class Detalles
                 }
 
                 sugerencia.SugerenciaEstado = estados.Where(s => s.EstadoNombre.ToLower() == settingEstado.ToLower()).First();
-                sugerencia.NotasAdmins = $"Creamos un recurso sobre ese tema aqui: <a href={urlText}' target='_blank'>{urlText}</a>";
+                sugerencia.NotasAdmins = $"Creamos un recurso sobre ese tema aquí: <a href={urlText}' target='_blank'>{urlText}</a>";
                 break;
             case "en revision":
                 sugerencia.SugerenciaEstado = estados.Where(s => s.EstadoNombre.ToLower() == settingEstado.ToLower()).First();
