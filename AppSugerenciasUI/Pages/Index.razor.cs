@@ -319,6 +319,6 @@ public partial class Index
         await sugerenciaData.UpdateSugerencia(archivandoSugerencia);
         sugerencias.Remove(archivandoSugerencia);
         archivandoSugerencia = null;
-    //await FilterSugerencias();
+        //await FilterSugerencias();
     }
 }
