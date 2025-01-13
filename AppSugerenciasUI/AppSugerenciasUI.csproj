@@ -4,6 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>    
     <ImplicitUsings>enable</ImplicitUsings>    
     <UserSecretsId>9340a16e-6bea-4f78-b3fc-c4e97a6322b9</UserSecretsId>
+	<RunAOTCompilation>true</RunAOTCompilation>
   </PropertyGroup>
 
   <ItemGroup>
