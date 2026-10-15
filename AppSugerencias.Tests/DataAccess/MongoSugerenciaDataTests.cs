@@ -85,6 +85,28 @@ public class MongoSugerenciaDataTests
     }
 
     [Fact]
+    public async Task VotarSugerencia_SoportaVotosSimultaneosALaMismaSugerencia()
+    {
+        var autor = await CrearUsuario("Autor");
+        var sugerencia = await CrearSugerencia(autor);
+        var votantes = new List<UsuarioModel>();
+        for (int i = 0; i < 8; i++)
+        {
+            votantes.Add(await CrearUsuario($"Votante {i}"));
+        }
+
+        // Cada votante hace clic tres veces seguidas: termina con el voto puesto.
+        await Task.WhenAll(votantes.SelectMany(v => Enumerable.Range(0, 3).Select(_ => _sugerencias.VotarSugerencia(sugerencia.Id, v.Id))));
+
+        var guardada = await _sugerencias.GetSugerencia(sugerencia.Id);
+        Assert.Equal(votantes.Select(v => v.Id).ToHashSet(), guardada.VotosDeUsuarios);
+        foreach (var votante in votantes)
+        {
+            Assert.Single((await _usuarios.GetUsuario(votante.Id)).SugerenciasVotadas);
+        }
+    }
+
+    [Fact]
     public async Task Aprobacion_SoloMuestraLasAprobadasYLasPendientesVanAlAdmin()
     {
         var autor = await CrearUsuario("Autor");

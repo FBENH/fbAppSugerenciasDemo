@@ -68,44 +68,41 @@ namespace SugerenciasAppLibrary.DataAccess
         public async Task VotarSugerencia(string SugerenciaId, string UsuarioId)
         {
             var client = _db.Client;
+            var db = client.GetDatabase(_db.DbName);
+            var sugerenciaEnTransaccion = db.GetCollection<SugerenciaModel>(_db.SugerenciaNombreColeccion);
+            var usuariosEnTransaccion = db.GetCollection<UsuarioModel>(_db.UsuarioNombreColeccion);
 
             using var session = await client.StartSessionAsync();
-            session.StartTransaction();
-            try
+            // WithTransactionAsync reintenta cuando dos votos a la misma sugerencia chocan (WriteConflict).
+            bool cambio = await session.WithTransactionAsync(async (s, ct) =>
             {
-                var db = client.GetDatabase(_db.DbName);
-                var sugerenciaEnTransaccion = db.GetCollection<SugerenciaModel>(_db.SugerenciaNombreColeccion);
-                var sugerencia = (await sugerenciaEnTransaccion.FindAsync(session, s => s.Id == SugerenciaId)).First();
+                var sugerencia = (await sugerenciaEnTransaccion.FindAsync(s, x => x.Id == SugerenciaId, cancellationToken: ct)).First(ct);
 
                 bool? votado = Votos.Alternar(sugerencia, UsuarioId);
                 if (votado is null)
                 {
                     // No se puede votar la propia sugerencia
-                    await session.AbortTransactionAsync();
-                    return;
+                    return false;
                 }
 
-                await sugerenciaEnTransaccion.ReplaceOneAsync(session, s => s.Id == SugerenciaId, sugerencia);
+                await sugerenciaEnTransaccion.ReplaceOneAsync(s, x => x.Id == SugerenciaId, sugerencia, cancellationToken: ct);
 
-                var usuariosEnTransaccion = db.GetCollection<UsuarioModel>(_db.UsuarioNombreColeccion);
-                var usuario = (await usuariosEnTransaccion.FindAsync(session, u => u.Id == UsuarioId)).First();
+                var usuario = (await usuariosEnTransaccion.FindAsync(s, u => u.Id == UsuarioId, cancellationToken: ct)).First(ct);
 
-                usuario.SugerenciasVotadas.RemoveAll(s => s.Id == SugerenciaId);
+                usuario.SugerenciasVotadas.RemoveAll(x => x.Id == SugerenciaId);
                 if (votado == true)
                 {
                     usuario.SugerenciasVotadas.Add(new SugerenciaBasicaModel(sugerencia));
                 }
 
-                await usuariosEnTransaccion.ReplaceOneAsync(session, u => u.Id == UsuarioId, usuario);
-                await session.CommitTransactionAsync();
+                await usuariosEnTransaccion.ReplaceOneAsync(s, u => u.Id == UsuarioId, usuario, cancellationToken: ct);
+                return true;
+            });
 
+            if (cambio)
+            {
                 _cache.Remove(CacheName);
                 _notificador.Notificar(SugerenciaId, TipoCambio.Voto);
-            }
-            catch
-            {
-                await session.AbortTransactionAsync();
-                throw;
             }
         }
         public async Task CreateSugerencia(SugerenciaModel sugerencia)
