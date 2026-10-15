@@ -1,0 +1,13 @@
+@{
+    var (texto, url) = NotaAdmin.Leer(Sugerencia);
+}
+@texto
+@if (url is not null)
+{
+    @(" ")<a href="@url" target="_blank" rel="noopener noreferrer">@url</a>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public SugerenciaModel Sugerencia { get; set; }
+}

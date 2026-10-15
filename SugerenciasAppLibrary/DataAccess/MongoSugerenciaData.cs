@@ -1,23 +1,17 @@
-﻿
+﻿using Microsoft.Extensions.Caching.Memory;
 
-using Microsoft.Extensions.Caching.Memory;
-using System.Security.Cryptography.X509Certificates;
-using System.Transactions;
-
-namespace SuegerenciasAppLibrary.DataAccess
+namespace SugerenciasAppLibrary.DataAccess
 {
     public class MongoSugerenciaData : IMongoSugerenciaData
     {
         private readonly IDBConnection _db;
-        private readonly IUserData _userData;
         private readonly IMemoryCache _cache;
         private readonly IMongoCollection<SugerenciaModel> _sugerencias;
         private const string CacheName = "SugerenciaData";
 
-        public MongoSugerenciaData(IDBConnection db, IUserData userData, IMemoryCache cache)
+        public MongoSugerenciaData(IDBConnection db, IMemoryCache cache)
         {
             this._db = db;
-            this._userData = userData;
             this._cache = cache;
             _sugerencias = db.SugerenciaColeccion;
         }
@@ -77,39 +71,37 @@ namespace SuegerenciasAppLibrary.DataAccess
             {
                 var db = client.GetDatabase(_db.DbName);
                 var sugerenciaEnTransaccion = db.GetCollection<SugerenciaModel>(_db.SugerenciaNombreColeccion);
-                var sugerencia = (await sugerenciaEnTransaccion.FindAsync(s => s.Id == SugerenciaId)).First();
+                var sugerencia = (await sugerenciaEnTransaccion.FindAsync(session, s => s.Id == SugerenciaId)).First();
 
-                bool Votado = sugerencia.VotosDeUsuarios.Add(UsuarioId);
-                if (Votado == false)
+                bool? votado = Votos.Alternar(sugerencia, UsuarioId);
+                if (votado is null)
                 {
-                    sugerencia.VotosDeUsuarios.Remove(UsuarioId);
+                    // No se puede votar la propia sugerencia
+                    await session.AbortTransactionAsync();
+                    return;
                 }
 
                 await sugerenciaEnTransaccion.ReplaceOneAsync(session, s => s.Id == SugerenciaId, sugerencia);
 
-                var UsuariosEnTransaccion = db.GetCollection<UsuarioModel>(_db.UsuarioNombreColeccion);
-                var usuario = await _userData.GetUsuario(UsuarioId);
+                var usuariosEnTransaccion = db.GetCollection<UsuarioModel>(_db.UsuarioNombreColeccion);
+                var usuario = (await usuariosEnTransaccion.FindAsync(session, u => u.Id == UsuarioId)).First();
 
-                if (Votado)
+                usuario.SugerenciasVotadas.RemoveAll(s => s.Id == SugerenciaId);
+                if (votado == true)
                 {
                     usuario.SugerenciasVotadas.Add(new SugerenciaBasicaModel(sugerencia));
                 }
-                else
-                {
-                    var sugerenciaParaRemover = usuario.SugerenciasVotadas.Where(s => s.Id == SugerenciaId).First();
-                    usuario.SugerenciasVotadas.Remove(sugerenciaParaRemover);
-                }
-                await UsuariosEnTransaccion.ReplaceOneAsync(session, u => u.Id == UsuarioId, usuario);
+
+                await usuariosEnTransaccion.ReplaceOneAsync(session, u => u.Id == UsuarioId, usuario);
                 await session.CommitTransactionAsync();
 
                 _cache.Remove(CacheName);
             }
-            catch (Exception ex)
+            catch
             {
                 await session.AbortTransactionAsync();
                 throw;
             }
-
         }
         public async Task CreateSugerencia(SugerenciaModel sugerencia)
         {
@@ -122,16 +114,17 @@ namespace SuegerenciasAppLibrary.DataAccess
             {
                 var db = client.GetDatabase(_db.DbName);
                 var sugerenciaEnTransaccion = db.GetCollection<SugerenciaModel>(_db.SugerenciaNombreColeccion);
-                await sugerenciaEnTransaccion.InsertOneAsync(session,sugerencia);
+                await sugerenciaEnTransaccion.InsertOneAsync(session, sugerencia);
 
                 var usuariosEnTransaccion = db.GetCollection<UsuarioModel>(_db.UsuarioNombreColeccion);
-                var usuario = await _userData.GetUsuario(sugerencia.Autor.Id);
+                var usuario = (await usuariosEnTransaccion.FindAsync(session, u => u.Id == sugerencia.Autor.Id)).First();
                 usuario.SugerenciasCreadas.Add(new SugerenciaBasicaModel(sugerencia));
-                await usuariosEnTransaccion.ReplaceOneAsync(session,u => u.Id == usuario.Id, usuario);
+                await usuariosEnTransaccion.ReplaceOneAsync(session, u => u.Id == usuario.Id, usuario);
 
                 await session.CommitTransactionAsync();
+                _cache.Remove(CacheName);
             }
-            catch (Exception ex)
+            catch
             {
                 await session.AbortTransactionAsync();
                 throw;

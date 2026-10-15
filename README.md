@@ -17,10 +17,36 @@ Password: `AppSugerencias1`
 
 ## Full-Stack Solution
 
-- **Backend**: Developed with C# .NET 9.
-- **Frontend**: Built with Blazor for a responsive and interactive UI.
-- **Database**: Powered by MongoDB for scalable and flexible data storage.
-- **Deployment**: Hosted on Azure Web Apps for reliability and scalability.
+- **Backend**: C# on .NET 10.
+- **Frontend**: Blazor Web App with interactive server rendering.
+- **Database**: MongoDB. Creating and voting on suggestions use transactions, so the server must be a replica set.
+- **Tests**: xUnit and bUnit. Data access tests run against a real MongoDB started with Testcontainers.
+- **Deployment**: Azure Web App, deployed by GitHub Actions on every push to `master`.
+
+## Running locally
+
+Requirements: .NET 10 SDK and Docker.
+
+1. Start MongoDB as a single-node replica set:
+
+   ```bash
+   docker run -d --name mongo-sugerencias -p 27017:27017 mongo:8 --replSet rs0
+   docker exec mongo-sugerencias mongosh --quiet --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"localhost:27017"}]})'
+   ```
+
+2. Run the app: `dotnet run --project AppSugerenciasUI`. In Development it connects to `mongodb://localhost:27017/?replicaSet=rs0&directConnection=true` (see `appsettings.Development.json`).
+
+To use another database, set the connection string with user-secrets (`dotnet user-secrets set "ConnectionStrings:MongoDB" "<connection string>" --project AppSugerenciasUI`) or the `ConnectionStrings__MongoDB` environment variable. In Azure it is an App Setting. It is never stored in the repository.
+
+The `categorias` and `estados` collections must have data before suggestions can be created.
+
+## Tests
+
+```bash
+dotnet test
+```
+
+Docker must be running, because the data access tests start a MongoDB container.
 
 ## Screenshots
 

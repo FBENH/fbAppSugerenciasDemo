@@ -1,4 +1,4 @@
-﻿namespace SuegerenciasAppLibrary.Models
+﻿namespace SugerenciasAppLibrary.Models
 {
     public class UsuarioBasicoModel
     {

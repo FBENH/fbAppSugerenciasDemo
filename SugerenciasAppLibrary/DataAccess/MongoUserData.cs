@@ -1,6 +1,4 @@
-﻿
-
-namespace SuegerenciasAppLibrary.DataAccess
+﻿namespace SugerenciasAppLibrary.DataAccess
 {
     public class MongoUserData : IUserData
     {

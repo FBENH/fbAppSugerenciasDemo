@@ -10,13 +10,17 @@ public partial class Perfil
     private List<SugerenciaModel> rechazadas;
     protected async override Task OnInitializedAsync()
     {
-        //Reemplazar con busqueda de usuario
         loggedInUsuario = await authProvider.GetUsuarioFromAuth(userData);
+        if (loggedInUsuario is null)
+        {
+            return;
+        }
+
         var resultados = await sugerenciaData.GetSugerenciasUsuario(loggedInUsuario.Id);
-        if (loggedInUsuario is not null && resultados is not null)
+        if (resultados is not null)
         {
             sugerido = resultados.OrderByDescending(s => s.FechaCreacion).ToList();
-            aprobadas = sugerido.Where(s => s.AprobadoParaMostrar && s.Archivado == false & s.Rechazado == false).ToList();
+            aprobadas = sugerido.Where(s => s.AprobadoParaMostrar && s.Archivado == false && s.Rechazado == false).ToList();
             archivadas = sugerido.Where(s => s.Archivado && s.Rechazado == false).ToList();
             pendientes = sugerido.Where(s => s.AprobadoParaMostrar == false && s.Rechazado == false).ToList();
             rechazadas = sugerido.Where(s => s.Rechazado).ToList();

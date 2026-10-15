@@ -1,9 +1,6 @@
-﻿
+﻿using Microsoft.Extensions.Caching.Memory;
 
-using Microsoft.Extensions.Caching.Memory;
-using System.Data;
-
-namespace SuegerenciasAppLibrary.DataAccess
+namespace SugerenciasAppLibrary.DataAccess
 {
     public class MongoStatusData : IStatusData
     {

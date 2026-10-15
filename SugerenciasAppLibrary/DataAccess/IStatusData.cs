@@ -1,4 +1,4 @@
-﻿namespace SuegerenciasAppLibrary.DataAccess
+﻿namespace SugerenciasAppLibrary.DataAccess
 {
     public interface IStatusData
     {
