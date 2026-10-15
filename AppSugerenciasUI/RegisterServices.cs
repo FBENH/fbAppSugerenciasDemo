@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
+using AppSugerenciasUI.Services;
 
 namespace AppSugerenciasUI;
 
@@ -32,5 +33,13 @@ public static class RegisterServices
         builder.Services.AddSingleton<IStatusData, MongoStatusData>();
         builder.Services.AddSingleton<IMongoSugerenciaData, MongoSugerenciaData>();
         builder.Services.AddSingleton<IUserData, MongoUserData>();
+        builder.Services.AddSingleton<IComentarioData, MongoComentarioData>();
+        builder.Services.AddSingleton<NotificadorSugerencias>();
+
+        builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.Configure<OpcionesDemo>(builder.Configuration.GetSection(OpcionesDemo.Seccion));
+        builder.Services.AddHostedService<MantenimientoDemoService>();
+
+        builder.Services.AddOpenApi();
     }
 }

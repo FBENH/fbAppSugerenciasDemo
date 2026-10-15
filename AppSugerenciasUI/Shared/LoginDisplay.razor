@@ -1,20 +1,12 @@
-﻿<AuthorizeView Policy="Admin">
-    <a class="login-link" href="/AprobacionAdmin">
-        Admin    
-    </a>
+<AuthorizeView Policy="Admin">
+    <NavLink class="nav-link" href="AprobacionAdmin">Pendientes</NavLink>
 </AuthorizeView>
 <AuthorizeView>
     <Authorized>
-        <a class="login-link" href="/Perfil">
-            Perfíl
-        </a>
-        <a class="login-link" href="MicrosoftIdentity/Account/SignOut">
-            Cerrar sesión
-        </a>
+        <NavLink class="nav-link" href="Perfil">Mi perfil</NavLink>
+        <a class="nav-link" href="MicrosoftIdentity/Account/SignOut">Salir</a>
     </Authorized>
     <NotAuthorized>
-        <a class="login-link" href="MicrosoftIdentity/Account/SignIn">
-            Iniciar sesión
-        </a>
+        <a class="btn btn-sm" href="MicrosoftIdentity/Account/SignIn">Iniciar sesión</a>
     </NotAuthorized>
 </AuthorizeView>

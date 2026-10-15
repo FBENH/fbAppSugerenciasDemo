@@ -6,13 +6,15 @@ namespace SugerenciasAppLibrary.DataAccess
     {
         private readonly IDBConnection _db;
         private readonly IMemoryCache _cache;
+        private readonly NotificadorSugerencias _notificador;
         private readonly IMongoCollection<SugerenciaModel> _sugerencias;
         private const string CacheName = "SugerenciaData";
 
-        public MongoSugerenciaData(IDBConnection db, IMemoryCache cache)
+        public MongoSugerenciaData(IDBConnection db, IMemoryCache cache, NotificadorSugerencias notificador)
         {
             this._db = db;
             this._cache = cache;
+            this._notificador = notificador;
             _sugerencias = db.SugerenciaColeccion;
         }
 
@@ -60,6 +62,8 @@ namespace SugerenciasAppLibrary.DataAccess
         {
             await _sugerencias.ReplaceOneAsync(s => s.Id == sugerencia.Id, sugerencia);
             _cache.Remove(CacheName);
+            _cache.Remove(sugerencia.Autor?.Id ?? "");
+            _notificador.Notificar(sugerencia.Id, TipoCambio.Actualizada);
         }
         public async Task VotarSugerencia(string SugerenciaId, string UsuarioId)
         {
@@ -96,6 +100,7 @@ namespace SugerenciasAppLibrary.DataAccess
                 await session.CommitTransactionAsync();
 
                 _cache.Remove(CacheName);
+                _notificador.Notificar(SugerenciaId, TipoCambio.Voto);
             }
             catch
             {
@@ -123,12 +128,32 @@ namespace SugerenciasAppLibrary.DataAccess
 
                 await session.CommitTransactionAsync();
                 _cache.Remove(CacheName);
+                _cache.Remove(sugerencia.Autor.Id);
+                _notificador.Notificar(sugerencia.Id, TipoCambio.Creada);
             }
             catch
             {
                 await session.AbortTransactionAsync();
                 throw;
             }
+        }
+
+        public async Task<List<SugerenciaModel>> BuscarParecidas(string texto, int limite = 5)
+        {
+            string consulta = BusquedaParecidas.Consulta(texto);
+            if (consulta is null)
+            {
+                return [];
+            }
+
+            var filtro = Builders<SugerenciaModel>.Filter.Text(consulta, new TextSearchOptions { Language = "spanish" })
+                & Builders<SugerenciaModel>.Filter.Eq(s => s.AprobadoParaMostrar, true)
+                & Builders<SugerenciaModel>.Filter.Eq(s => s.Archivado, false);
+
+            return await _sugerencias.Find(filtro)
+                .Sort(Builders<SugerenciaModel>.Sort.MetaTextScore("score"))
+                .Limit(limite)
+                .ToListAsync();
         }
     }
 }

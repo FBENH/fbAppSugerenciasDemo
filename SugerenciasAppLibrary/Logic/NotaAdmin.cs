@@ -6,6 +6,16 @@ public static partial class NotaAdmin
 {
     public const string TextoCompletado = "Creamos un recurso sobre ese tema aquí:";
 
+    /// <summary>Texto que ve el autor según el estado que asigna el admin.</summary>
+    public static string TextoParaEstado(string estado) => estado?.ToLowerInvariant() switch
+    {
+        "completado" => TextoCompletado,
+        "en revision" => "Estamos evaluando esta sugerencia.",
+        "proximamente" => "Buena sugerencia, estamos creando recursos para abordar este tema.",
+        "rechazada" => "Hemos decidido no implementar tu sugerencia en este momento.",
+        _ => null
+    };
+
     /// <summary>
     /// Acepta solo URLs absolutas http/https, para que el link de "Completado" no pueda
     /// llevar javascript: u otros esquemas.

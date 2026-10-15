@@ -3,14 +3,22 @@ namespace AppSugerencias.Tests.DataAccess;
 [Collection(MongoCollection.Nombre)]
 public class MongoSugerenciaDataTests
 {
+    private readonly IDBConnection _db;
     private readonly MongoUserData _usuarios;
     private readonly MongoSugerenciaData _sugerencias;
+    private readonly NotificadorSugerencias _notificador = new();
+    private readonly List<CambioSugerencia> _cambios = [];
 
     public MongoSugerenciaDataTests(MongoFixture fixture)
     {
-        var db = fixture.NuevaConexion();
-        _usuarios = new MongoUserData(db);
-        _sugerencias = new MongoSugerenciaData(db, MongoFixture.NuevoCache());
+        _db = fixture.NuevaConexion();
+        _usuarios = new MongoUserData(_db);
+        _sugerencias = new MongoSugerenciaData(_db, MongoFixture.NuevoCache(), _notificador);
+        _notificador.Cambio += c =>
+        {
+            lock (_cambios) { _cambios.Add(c); }
+            return Task.CompletedTask;
+        };
     }
 
     private async Task<UsuarioModel> CrearUsuario(string nombre)
@@ -20,12 +28,12 @@ public class MongoSugerenciaDataTests
         return usuario;
     }
 
-    private async Task<SugerenciaModel> CrearSugerencia(UsuarioModel autor, string titulo = "Curso de Blazor")
+    private async Task<SugerenciaModel> CrearSugerencia(UsuarioModel autor, string titulo = "Curso de Blazor", string descripcion = "Descripción")
     {
         var sugerencia = new SugerenciaModel
         {
             Sugerencia = titulo,
-            Descripcion = "Descripción",
+            Descripcion = descripcion,
             Autor = new UsuarioBasicoModel(autor),
             Categoria = new CategoriaModel { CategoriaNombre = "Desarrollo" }
         };
@@ -106,5 +114,35 @@ public class MongoSugerenciaDataTests
         await _sugerencias.UpdateSugerencia(sugerencia);
 
         Assert.Empty(await _sugerencias.GetAllSugerenciasAprobadas());
+    }
+
+    [Fact]
+    public async Task CadaCambioAvisaALasPantallasAbiertas()
+    {
+        var autor = await CrearUsuario("Autor");
+        var votante = await CrearUsuario("Votante");
+
+        var sugerencia = await CrearSugerencia(autor);
+        await _sugerencias.VotarSugerencia(sugerencia.Id, votante.Id);
+        sugerencia.AprobadoParaMostrar = true;
+        await _sugerencias.UpdateSugerencia(sugerencia);
+
+        Assert.Equal(
+            [TipoCambio.Creada, TipoCambio.Voto, TipoCambio.Actualizada],
+            _cambios.Select(c => c.Tipo));
+        Assert.All(_cambios, c => Assert.Equal(sugerencia.Id, c.SugerenciaId));
+    }
+
+    [Fact]
+    public async Task UpdateSugerencia_ElPerfilDelAutorVeLosCambiosSinEsperarElCache()
+    {
+        var autor = await CrearUsuario("Autor");
+        var sugerencia = await CrearSugerencia(autor);
+        Assert.False(Assert.Single(await _sugerencias.GetSugerenciasUsuario(autor.Id)).AprobadoParaMostrar);
+
+        sugerencia.AprobadoParaMostrar = true;
+        await _sugerencias.UpdateSugerencia(sugerencia);
+
+        Assert.True(Assert.Single(await _sugerencias.GetSugerenciasUsuario(autor.Id)).AprobadoParaMostrar);
     }
 }

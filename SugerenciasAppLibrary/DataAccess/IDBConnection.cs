@@ -14,5 +14,7 @@ namespace SugerenciasAppLibrary.DataAccess
         string SugerenciaNombreColeccion { get; }
         IMongoCollection<UsuarioModel> UsuarioColeccion { get; }
         string UsuarioNombreColeccion { get; }
+        IMongoCollection<ComentarioModel> ComentarioColeccion { get; }
+        IMongoDatabase Database { get; }
     }
 }

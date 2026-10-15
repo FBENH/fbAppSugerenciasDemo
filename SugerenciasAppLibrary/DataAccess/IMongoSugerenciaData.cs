@@ -10,5 +10,6 @@
         Task<List<SugerenciaModel>> GetSugerenciasUsuario(string usuarioId);
         Task UpdateSugerencia(SugerenciaModel sugerencia);
         Task VotarSugerencia(string SugerenciaId, string UsuarioId);
+        Task<List<SugerenciaModel>> BuscarParecidas(string texto, int limite = 5);
     }
 }

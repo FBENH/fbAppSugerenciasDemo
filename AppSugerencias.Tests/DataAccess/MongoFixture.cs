@@ -23,6 +23,8 @@ public sealed class MongoFixture : IAsyncLifetime
         await _container.DisposeAsync();
     }
 
+    public string ConnectionString => _container.GetConnectionString();
+
     /// <summary>Crea una conexión a una base nueva, para que cada test arranque vacío.</summary>
     public IDBConnection NuevaConexion()
     {
@@ -35,6 +37,14 @@ public sealed class MongoFixture : IAsyncLifetime
             .Build();
 
         return new DBConnection(config);
+    }
+
+    /// <summary>Igual que <see cref="NuevaConexion"/>, pero con los índices creados (los necesita la búsqueda de texto).</summary>
+    public async Task<IDBConnection> NuevaConexionConIndicesAsync()
+    {
+        var db = NuevaConexion();
+        await BaseDeDatos.CrearIndicesAsync(db);
+        return db;
     }
 
     public static IMemoryCache NuevoCache() => new MemoryCache(new MemoryCacheOptions());

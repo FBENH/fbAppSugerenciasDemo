@@ -1,0 +1,17 @@
+@if (Sugerencia?.SugerenciaEstado is not null)
+{
+    <span class="badge badge-dot badge-@Votos.SufijoEstadoCss(Sugerencia)">@Nombre(Sugerencia.SugerenciaEstado.EstadoNombre)</span>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public SugerenciaModel Sugerencia { get; set; }
+
+    // Los estados se guardan sin tildes en la base; se muestran con ortografía correcta.
+    public static string Nombre(string estado) => estado switch
+    {
+        "En revision" => "En revisión",
+        "Proximamente" => "Próximamente",
+        _ => estado
+    };
+}

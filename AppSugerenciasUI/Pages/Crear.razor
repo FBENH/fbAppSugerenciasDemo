@@ -1,55 +1,93 @@
-﻿@page "/Crear"
+@page "/Crear"
 @attribute [Authorize]
+@implements IDisposable
 @using AppSugerenciasUI.Components
-@using AppSugerenciasUI.Models;
+@using AppSugerenciasUI.Models
 @inject AuthenticationStateProvider authProvider
 @inject ICategoryData categoriaData
 @inject IMongoSugerenciaData sugerenciaData
 @inject IUserData userData
 @inject NavigationManager navManager
 
-<h1 class="page-heading text-uppercase mb-4">Hacer una sugerencia</h1>
+<PageTitle>Nueva sugerencia · Sugerencias</PageTitle>
 
-<div class="row justify-content-center create-form">
-    <div class="col-xl-8 col-lg-10 form-layout">
-        <div class="close-button-section">
-            <button class="btn btn-close" @onclick="ClosePage"></button>
+<div class="narrow">
+    <a class="back-link" href="/"><Icon Name="back" /> Todas las sugerencias</a>
+    <div class="page-head">
+        <div>
+            <h1>Nueva sugerencia</h1>
+            <p>Un administrador la revisa antes de publicarla para que el resto pueda votarla.</p>
         </div>
-        @if(categorias is not null)
-        {
+    </div>
+
+    @if (categorias is null)
+    {
+        <div class="card card-pad" aria-busy="true">
+            <div class="skeleton sk-line" style="width:30%"></div>
+            <div class="skeleton sk-line" style="height:38px"></div>
+            <div class="skeleton sk-line" style="width:30%;margin-top:24px"></div>
+            <div class="skeleton sk-line" style="height:60px"></div>
+        </div>
+    }
+    else
+    {
+        <div class="card card-pad">
             <EditForm Model="sugerencia" OnValidSubmit="CrearSugerencia">
-                <DataAnnotationsValidator/>
-                <ValidationSummary/>
-                <div class="input-section">
-                    <label class="form-label fw-bold text-uppercase" for="sugerencia-text">Sugerencia</label>
-                    <div class="input-description">Has enfásis en el tema que quieres aprender.</div>
-                    <InputText class="form-control" id="sugerencia-text" @bind-Value="sugerencia.Sugerencia"/>
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="field">
+                    <label class="field-label" for="sugerencia-text">Tema</label>
+                    <span class="field-help">Contá qué te gustaría aprender, en una línea.</span>
+                    <InputText class="input" id="sugerencia-text" maxlength="75" autocomplete="off"
+                               @bind-Value="sugerencia.Sugerencia" @oninput="AlEscribirTitulo" />
+                    <div class="field-count">@largoTitulo/75</div>
                 </div>
-                <div class="input-section">
-                    <label class="form-label fw-bold text-uppercase" for="categoria">Categoría</label>
-                    <div class="input-description">Elige una categoría.</div>
-                    <div class="col-lg-8">
-                        <MyInputRadioGroup id="categoria" @bind-Value="sugerencia.CategoriaId">
-                            @foreach(var c in categorias)
+
+                @if (parecidas.Count > 0)
+                {
+                    <div class="status-panel" style="margin:-6px 0 22px" aria-live="polite">
+                        <div class="section-title">Puede que ya exista</div>
+                        <p style="font-size:.9rem">Si alguna de estas es lo que buscás, votala en lugar de crear una nueva.</p>
+                        @foreach (var p in parecidas)
+                        {
+                            <div class="meta" style="margin-top:4px">
+                                <a href="@($"Detalles/{p.Id}")" target="_blank">@p.Sugerencia</a>
+                                <span>@(p.VotosDeUsuarios?.Count ?? 0) votos</span>
+                                <EstadoBadge Sugerencia="p" />
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div class="field">
+                    <span class="field-label" id="categoria-label">Categoría</span>
+                    <MyInputRadioGroup @bind-Value="sugerencia.CategoriaId">
+                        <div class="choice-grid" role="radiogroup" aria-labelledby="categoria-label">
+                            @foreach (var c in categorias)
                             {
-                                <div class="radio-item-group">
-                                    <InputRadio Value="@c.Id" id="@c.Id"/>
-                                    <label for="@c.Id">@c.CategoriaNombre - @c.CategoriaDescripcion</label>
-                                </div>
+                                <label class="choice">
+                                    <InputRadio Value="@c.Id" />
+                                    <span class="choice-body">
+                                        <strong>@c.CategoriaNombre</strong>
+                                        <span>@c.CategoriaDescripcion</span>
+                                    </span>
+                                </label>
                             }
-                        </MyInputRadioGroup>
-                    </div>
-                    </div>
-                <div class="input-section">
-                    <label class="form-label fw-bold text-uppercase" for="descripcion">Descripción</label>
-                    <div class="input-description">Describa su sugerencia de forma breve.</div>
-                    <InputTextArea class="form-control" id="descripcion" @bind-Value="sugerencia.Descripcion" />
+                        </div>
+                    </MyInputRadioGroup>
                 </div>
-                <div class="center-children">
-                    <button class="btn btn-main btn-lg text-uppercase" type="submit">Sugerir</button>
+
+                <div class="field">
+                    <label class="field-label" for="descripcion">Descripción <span class="field-help">(opcional)</span></label>
+                    <InputTextArea class="textarea" id="descripcion" maxlength="500" @bind-Value="sugerencia.Descripcion" />
+                </div>
+
+                <div class="row-actions">
+                    <a class="btn btn-ghost" href="/">Cancelar</a>
+                    <button class="btn btn-primary" type="submit" disabled="@enviando">Enviar sugerencia</button>
                 </div>
             </EditForm>
-        }
-
-    </div>
+        </div>
+    }
 </div>

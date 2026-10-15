@@ -1,25 +1,8 @@
-﻿@inject NavigationManager navManager
-
-<div class="row justify-content-center">
-    <div class="col-xl-8 col-lg-10 form-layout">
-        <div class="row">
-            <div class="col-11">
-            <div class="fw-bold mb-2 fs-5">Autorización requerida.</div>
-            <p>
-                No estas autorizado para acceder a esta sección. Debes de estar logeado para crear o votar sugerencias.
-                Debes de ser un administrador para aprobar o rechazar sugerencias.
-            </p>
-        </div>
-        <div class="col-1 close-button-section">
-            <button class="btn btn-close" @onclick="ClosePage"></button>
-        </div>
-    </div>
-   </div>
+<div class="card card-pad narrow empty">
+    <h2>Necesitás iniciar sesión</h2>
+    <p>Para crear o votar sugerencias tenés que iniciar sesión. Aprobar o rechazar sugerencias es solo para administradores.</p>
+    <p style="margin-top:18px">
+        <a class="btn btn-primary" href="MicrosoftIdentity/Account/SignIn">Iniciar sesión</a>
+        <a class="btn btn-ghost" href="/">Volver al inicio</a>
+    </p>
 </div>
-
-@code {
-    private void ClosePage()
-    {
-        navManager.NavigateTo("/");
-    }
-}

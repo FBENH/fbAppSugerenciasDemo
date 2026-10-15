@@ -1,4 +1,6 @@
 using AppSugerenciasUI;
+using AppSugerenciasUI.Api;
+using Scalar.AspNetCore;
 using Microsoft.AspNetCore.Rewrite;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +17,21 @@ if (!app.Environment.IsDevelopment())
 
 app.UseStatusCodePagesWithReExecute("/no-encontrado", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+
+// La página de login de Azure AD B2C carga la plantilla de /b2c desde su propio dominio.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/b2c"))
+    {
+        string b2c = app.Configuration["AzureAdB2C:Instance"]?.TrimEnd('/');
+        if (string.IsNullOrEmpty(b2c) == false)
+        {
+            context.Response.Headers.AccessControlAllowOrigin = b2c;
+        }
+    }
+
+    await next();
+});
 
 app.UseRewriter(
     new RewriteOptions().Add(
@@ -34,7 +51,12 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapControllers();
 app.MapRazorPages();
+app.MapSugerenciasApi();
+app.MapOpenApi();
+app.MapScalarApiReference("/api/docs", options => options.WithTitle("API de Sugerencias"));
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+public partial class Program;

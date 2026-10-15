@@ -5,10 +5,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
+    <!-- Los tests son cortos; pasar TestContext.Current.CancellationToken en cada llamada solo agrega ruido. -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="bunit" Version="2.11.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.11.0" />
     <PackageReference Include="Testcontainers.MongoDb" Version="4.16.0" />
     <PackageReference Include="xunit.v3" Version="4.0.2" />
   </ItemGroup>
@@ -23,6 +27,7 @@
     <Using Include="SugerenciasAppLibrary.Models" />
     <Using Include="SugerenciasAppLibrary.Logic" />
     <Using Include="SugerenciasAppLibrary.DataAccess" />
+    <Using Include="MongoDB.Driver" />
   </ItemGroup>
 
 </Project>
