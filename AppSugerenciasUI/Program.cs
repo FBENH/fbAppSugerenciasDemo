@@ -9,16 +9,8 @@ builder.ConfigureServices();
 
 var app = builder.Build();
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Error");
-    app.UseHsts();
-}
-
-app.UseStatusCodePagesWithReExecute("/no-encontrado", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
-
 // La página de login de Azure AD B2C carga la plantilla de /b2c desde su propio dominio.
+// Va primero para que el header también salga en redirecciones y páginas de error.
 app.Use(async (context, next) =>
 {
     if (context.Request.Path.StartsWithSegments("/b2c"))
@@ -27,11 +19,27 @@ app.Use(async (context, next) =>
         if (string.IsNullOrEmpty(b2c) == false)
         {
             context.Response.Headers.AccessControlAllowOrigin = b2c;
+            if (HttpMethods.IsOptions(context.Request.Method))
+            {
+                context.Response.Headers.AccessControlAllowMethods = "GET";
+                context.Response.Headers.AccessControlAllowHeaders = context.Request.Headers.AccessControlRequestHeaders;
+                context.Response.StatusCode = StatusCodes.Status204NoContent;
+                return;
+            }
         }
     }
 
     await next();
 });
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
+
+app.UseStatusCodePagesWithReExecute("/no-encontrado", createScopeForStatusCodePages: true);
+app.UseHttpsRedirection();
 
 app.UseRewriter(
     new RewriteOptions().Add(
