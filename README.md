@@ -69,13 +69,30 @@ Docker must be running, because the data access tests start a MongoDB container.
 
 ## Screenshots
 
-![appsugerenciasWide](https://github.com/user-attachments/assets/533a15ca-f679-43ca-91d4-aeca26499289)
+Suggestion list, light and dark theme:
 
-![AppSugerenciasScreen1](https://github.com/user-attachments/assets/0138146b-8ca3-423a-8d55-123890aad95f)
+![Suggestion list in the light theme](docs/screenshots/home-light.png)
 
-![AppSugerenciasScreen2](https://github.com/user-attachments/assets/500cb865-3527-4126-8c2d-1baaac396780)
+![Suggestion list in the dark theme](docs/screenshots/home-dark.png)
 
-![AppSugerenciasSreen3](https://github.com/user-attachments/assets/5d6c08c5-73cf-4298-b737-565a742d2d7b)
+New suggestion form. While the user types, it lists existing suggestions with similar words:
 
-![AppSugerenciasScreen4](https://github.com/user-attachments/assets/c7997896-a3d6-4d14-bd50-61b265f40a21)
+![New suggestion form showing a similar suggestion](docs/screenshots/auth-crear.png)
 
+Suggestion page as an admin, with the status panel and comments:
+
+![Suggestion page with the admin status panel and comments](docs/screenshots/auth-detalle.png)
+
+Pending suggestions, where an admin approves, rejects or edits them:
+
+![Pending suggestions with approve and reject buttons](docs/screenshots/auth-admin.png)
+
+Profile with the suggestions a user created, their status and the admin's answer:
+
+![User profile with the suggestions they created](docs/screenshots/auth-perfil.png)
+
+Suggestion page in the dark theme, and the list on a phone:
+
+![Suggestion page in the dark theme](docs/screenshots/detalle-dark.png)
+
+<img src="docs/screenshots/home-mobile.png" alt="Suggestion list on a phone" width="320">
