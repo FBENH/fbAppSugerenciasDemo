@@ -1,54 +1,87 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 namespace AppSugerenciasUI.Pages;
 
 public partial class Detalles
 {
+    private static readonly (string Clave, string Texto)[] OpcionesEstado =
+    [
+        ("completado", "Completado"),
+        ("en revision", "En revisión"),
+        ("proximamente", "Próximamente"),
+        ("rechazada", "Rechazada"),
+    ];
+
     [Parameter]
     public string Id { get; set; }
 
+    private bool cargando = true;
     private SugerenciaModel sugerencia;
     private UsuarioModel loggedInUsuario;
+    private bool esAdmin;
     private List<EstadoModel> estados;
+    private List<ComentarioModel> comentarios;
     private string settingEstado = "";
     private string urlText = "";
     private bool urlInvalida = false;
+    private string nuevoComentario = "";
+    private bool enviandoComentario;
+
     protected async override Task OnInitializedAsync()
     {
-        sugerencia = await sugerenciaData.GetSugerencia(Id);
+        var authState = await authProvider.GetAuthenticationStateAsync();
+        esAdmin = (await authorizationService.AuthorizeAsync(authState.User, "Admin")).Succeeded;
         loggedInUsuario = await authProvider.GetUsuarioFromAuth(userData);
         estados = await estadoData.GetAllEstados();
+        await CargarSugerencia();
+        cargando = false;
+        notificador.Cambio += AlCambiar;
+    }
+
+    private async Task CargarSugerencia()
+    {
+        sugerencia = MongoDB.Bson.ObjectId.TryParse(Id, out _) ? await sugerenciaData.GetSugerencia(Id) : null;
+
+        // Las sugerencias sin aprobar o archivadas solo las ven el autor y los admins.
+        bool visible = sugerencia is { AprobadoParaMostrar: true, Archivado: false }
+            || esAdmin
+            || (sugerencia is not null && Votos.EsAutor(sugerencia, loggedInUsuario?.Id));
+        if (visible == false)
+        {
+            sugerencia = null;
+            comentarios = null;
+            return;
+        }
+
+        comentarios = await comentarioData.GetComentarios(sugerencia.Id);
+    }
+
+    private async Task AlCambiar(CambioSugerencia cambio)
+    {
+        if (cambio.Tipo != TipoCambio.Reinicio && cambio.SugerenciaId != Id)
+        {
+            return;
+        }
+
+        await InvokeAsync(async () =>
+        {
+            await CargarSugerencia();
+            StateHasChanged();
+        });
     }
 
     private async Task CompletarSetEstado()
     {
-        string notas;
         string url = null;
-        switch (settingEstado)
+        if (settingEstado == "completado" && NotaAdmin.TryCrearUrlRecurso(urlText, out url) == false)
         {
-            case "completado":
-                if (NotaAdmin.TryCrearUrlRecurso(urlText, out url) == false)
-                {
-                    urlInvalida = true;
-                    return;
-                }
-
-                notas = NotaAdmin.TextoCompletado;
-                break;
-            case "en revision":
-                notas = "Estamos evaluando esta sugerencia.";
-                break;
-            case "proximamente":
-                notas = "Buena sugerencia, estamos creando recursos para abordar este tema.";
-                break;
-            case "rechazada":
-                notas = "Hemos decidido no implementar tu sugerencia en este momento.";
-                break;
-            default:
-                return;
+            urlInvalida = true;
+            return;
         }
 
+        string notas = NotaAdmin.TextoParaEstado(settingEstado);
         var estado = estados.FirstOrDefault(s => string.Equals(s.EstadoNombre, settingEstado, StringComparison.OrdinalIgnoreCase));
-        if (estado is null)
+        if (notas is null || estado is null)
         {
             return;
         }
@@ -62,50 +95,61 @@ public partial class Detalles
         await sugerenciaData.UpdateSugerencia(sugerencia);
     }
 
-    private void ClosePage()
-    {
-        navManager.NavigateTo("/");
-    }
-
-    private string GetUpvoteTopText()
-    {
-        return Votos.TextoSuperior(sugerencia, loggedInUsuario?.Id);
-    }
-
-    private string GetUpvoteBottomText()
-    {
-        return Votos.TextoInferior(sugerencia, loggedInUsuario?.Id);
-    }
-
     private async Task Votar()
     {
-        if (loggedInUsuario is not null)
-        {
-            if (Votos.Alternar(sugerencia, loggedInUsuario.Id) is null)
-            {
-                return;
-            }
-
-            await sugerenciaData.VotarSugerencia(sugerencia.Id, loggedInUsuario.Id);
-        }
-        else
+        if (loggedInUsuario is null)
         {
             navManager.NavigateTo("/MicrosoftIdentity/Account/SignIn", true);
+            return;
+        }
+
+        if (Votos.Alternar(sugerencia, loggedInUsuario.Id) is null)
+        {
+            return;
+        }
+
+        await sugerenciaData.VotarSugerencia(sugerencia.Id, loggedInUsuario.Id);
+    }
+
+    private async Task CrearComentario()
+    {
+        if (loggedInUsuario is null || string.IsNullOrWhiteSpace(nuevoComentario))
+        {
+            return;
+        }
+
+        enviandoComentario = true;
+        try
+        {
+            await comentarioData.CrearComentario(new ComentarioModel
+            {
+                SugerenciaId = sugerencia.Id,
+                Autor = new UsuarioBasicoModel(loggedInUsuario),
+                Texto = nuevoComentario,
+                EsAdmin = esAdmin,
+            });
+            nuevoComentario = "";
+            comentarios = await comentarioData.GetComentarios(sugerencia.Id);
+        }
+        finally
+        {
+            enviandoComentario = false;
         }
     }
 
-    private string GetVoteClass()
+    private async Task EliminarComentario(ComentarioModel comentario)
     {
-        return Votos.Estado(sugerencia, loggedInUsuario?.Id) switch
+        if (esAdmin == false)
         {
-            EstadoVoto.SinVotos => "sugerencia-detalle-sin-votos",
-            EstadoVoto.Votada => "sugerencia-detalle-votada",
-            _ => "sugerencia-detalle-no-votada"
-        };
+            return;
+        }
+
+        await comentarioData.EliminarComentario(comentario.Id);
+        comentarios.Remove(comentario);
     }
 
-    private string GetEstadoClass()
+    public void Dispose()
     {
-        return $"sugerencia-detalle-estado-{Votos.SufijoEstadoCss(sugerencia)}";
+        notificador.Cambio -= AlCambiar;
     }
 }

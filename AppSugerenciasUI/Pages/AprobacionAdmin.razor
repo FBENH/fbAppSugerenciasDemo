@@ -1,73 +1,83 @@
-﻿@page "/AprobacionAdmin"
-@attribute [Authorize(Policy ="Admin")]
+@page "/AprobacionAdmin"
+@attribute [Authorize(Policy = "Admin")]
 @inject IMongoSugerenciaData sugerenciaData
 @inject IUserData userData
 @inject NavigationManager navManager
 
-<h1 class="page-heading text-uppercase mb-4">Sugerencias pendientes.</h1>
+<PageTitle>Pendientes · Sugerencias</PageTitle>
 
-<div class="row">
-    <div class="sugerencias-count col-8 mt-2">@sugerencias?.Count Sugerencias</div>
-    <div class="col-4 close-button-section">
-        <button class="btn btn-close" @onclick="ClosePage"></button>
+<div class="narrow">
+    <div class="page-head">
+        <div>
+            <h1>Sugerencias pendientes</h1>
+            <p>Aprobá las que se publican para votar. Podés corregir el texto antes de aprobar.</p>
+        </div>
     </div>
-</div>
 
-@if(sugerencias is not null)
-{
-    foreach(var s in sugerencias)
+    @if (sugerencias is null)
     {
-        <div class="row submission">
-            <div class="col-lg-2 col-md-3 col-sm-4">
-                <button class="btn btn-aprobar" @onclick="(()=>AprobarSugerencia(s))">Aprobar</button>
-                <button class="btn btn-rechazar" @onclick="(()=>RechazarSugerencia(s))">Rechazar</button>
-            </div>
-            <div class="col-lg-10 col-md-9 col-sm-8">
-                <div>
-                    @if(editandoTitulo == s.Id)
-                    {
-                        <EditForm class="aprobar-edit-form" Model="@tituloEditado" OnSubmit="(()=> GuardarTitulo(s))">
-                            <InputText class="form-control aprobar-edit-field" @bind-Value="tituloEditado" />
-                            <button class="btn" type="submit">
-                                <span class="oi oi-check submission-edit-aprobar"></span>
-                            </button>
-                            <button type="button" class="btn" @onclick="(()=> editandoTitulo=string.Empty)">
-                                <span class="oi oi-x submission-edit-rechazar"></span>
-                            </button>
-                        </EditForm>
-                    }
-                    else
-                    {
-                        @s.Sugerencia
-                        <span class="oi oi-pencil submission-edit-icon" @onclick="(()=>EditarTitulo(s))"></span>
-                    }
-                </div>
-                <div>
-                    @s.Categoria.CategoriaNombre
-                </div>
-                <div>
-                    @s.Autor.DisplayName
-                </div>
-                <div>
-                    @if(editandoDescripcion==s.Id)
-                    {
-                        <EditForm class="aprobar-edit-form" Model="@descripcionEditada" OnSubmit="(()=>GuardarDescripcion(s))">
-                            <InputText class="form-control aprobar-edit-field" @bind-Value="descripcionEditada" />
-                            <button class="btn" type="submit">
-                                <span class="oi oi-check submission-edit-aprobar"></span>
-                            </button>
-                            <button type="button" class="btn submission-edit-rechazar" @onclick="(()=> editandoDescripcion=string.Empty)">
-                                <span class="oi oi-x"></span>
-                            </button>
-                        </EditForm>
-                    }
-                    else
-                    {
-                        @s.Descripcion
-                        <span class="oi oi-pencil submission-edit-icon" @onclick="(()=>EditarDescripcion(s))"></span>
-                    }
-                </div>
-            </div>
+        <div class="card card-pad" aria-busy="true">
+            <div class="skeleton sk-line" style="width:50%"></div>
+            <div class="skeleton sk-line" style="width:80%"></div>
         </div>
     }
-}
+    else if (sugerencias.Count == 0)
+    {
+        <div class="card empty">
+            <h2>No hay nada pendiente</h2>
+            <p>Las sugerencias nuevas aparecen acá hasta que las apruebes o rechaces.</p>
+        </div>
+    }
+    else
+    {
+        <div class="stack">
+            @foreach (var s in sugerencias)
+            {
+                <section class="card card-pad admin-item" @key="s.Id">
+                    <div>
+                        @if (editandoTitulo == s.Id)
+                        {
+                            <form class="inline-edit" @onsubmit="(() => GuardarTitulo(s))" @onsubmit:preventDefault>
+                                <input class="input" aria-label="Tema" maxlength="75" @bind="tituloEditado" />
+                                <button class="btn btn-sm btn-ok" type="submit" title="Guardar"><Icon Name="check" /></button>
+                                <button class="btn btn-sm btn-ghost" type="button" title="Cancelar" @onclick="(() => editandoTitulo = string.Empty)"><Icon Name="x" /></button>
+                            </form>
+                        }
+                        else
+                        {
+                            <h2>
+                                @s.Sugerencia
+                                <button class="edit-btn" title="Editar tema" @onclick="(() => EditarTitulo(s))"><Icon Name="pencil" /></button>
+                            </h2>
+                        }
+
+                        @if (editandoDescripcion == s.Id)
+                        {
+                            <form class="inline-edit" style="margin-top:8px" @onsubmit="(() => GuardarDescripcion(s))" @onsubmit:preventDefault>
+                                <input class="input" aria-label="Descripción" maxlength="500" @bind="descripcionEditada" />
+                                <button class="btn btn-sm btn-ok" type="submit" title="Guardar"><Icon Name="check" /></button>
+                                <button class="btn btn-sm btn-ghost" type="button" title="Cancelar" @onclick="(() => editandoDescripcion = string.Empty)"><Icon Name="x" /></button>
+                            </form>
+                        }
+                        else
+                        {
+                            <p class="detail-desc" style="margin-top:6px">
+                                @(string.IsNullOrWhiteSpace(s.Descripcion) ? "Sin descripción." : s.Descripcion)
+                                <button class="edit-btn" title="Editar descripción" @onclick="(() => EditarDescripcion(s))"><Icon Name="pencil" /></button>
+                            </p>
+                        }
+
+                        <div class="meta">
+                            <span class="badge">@s.Categoria?.CategoriaNombre</span>
+                            <span>@s.Autor?.DisplayName · @s.FechaCreacion.ToString("d MMM yyyy", Cultura.Es)</span>
+                        </div>
+                    </div>
+                    <div class="admin-actions">
+                        <button class="btn btn-danger" @onclick="(() => RechazarSugerencia(s))">Rechazar</button>
+                        <button class="btn btn-primary" @onclick="(() => AprobarSugerencia(s))">Aprobar</button>
+                    </div>
+                </section>
+            }
+        </div>
+    }
+</div>

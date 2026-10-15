@@ -56,9 +56,4 @@ public partial class AprobacionAdmin
         model.Descripcion = descripcionEditada;
         await sugerenciaData.UpdateSugerencia(model);
     }
-
-    private void ClosePage()
-    {
-        navManager.NavigateTo("/");
-    }
 }

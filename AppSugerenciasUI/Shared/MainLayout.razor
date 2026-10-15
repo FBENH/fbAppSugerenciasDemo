@@ -1,14 +1,28 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
-<PageTitle>AppSugerenciasUI</PageTitle>
+<PageTitle>Sugerencias</PageTitle>
 
 <div class="page">
-    <main class="container-xxl">
-        <div class="px-5 pt-3 nav-links">
-            <LoginDisplay />
+    <header class="topbar">
+        <div class="container topbar-inner">
+            <a class="brand" href="/">
+                <span class="brand-mark"><Icon Name="logo" /></span>
+                <span class="brand-name">Sugerencias</span>
+            </a>
+            <nav class="nav" aria-label="Principal">
+                <LoginDisplay />
+            </nav>
         </div>
-        <article class="content pt-1">
-            @Body
-        </article>
+    </header>
+
+    <main class="container">
+        @Body
     </main>
+
+    <footer class="footer">
+        <div class="container">
+            <span>Demo de una app de sugerencias de cursos, hecha con Blazor y MongoDB.</span>
+            <a href="https://github.com/FBENH/fbAppSugerenciasDemo" target="_blank" rel="noopener noreferrer">Código en GitHub</a>
+        </div>
+    </footer>
 </div>

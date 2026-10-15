@@ -1,167 +1,74 @@
-﻿@page "/Perfil"
+@page "/Perfil"
 @attribute [Authorize]
 @inject IMongoSugerenciaData sugerenciaData
 @inject IUserData userData
 @inject NavigationManager navManager
 @inject AuthenticationStateProvider authProvider
 
-<h1 class="page-heading text-uppercase mb-4">Mi perfíl</h1>
-<div class="row">
-    <div class="col-12 close-button-section">
-        <button class="btn btn-close" @onclick="ClosePage"></button>
-    </div>
-</div>
+<PageTitle>Mi perfil · Sugerencias</PageTitle>
 
-<div class="form-layout mb-3">
-    <h2 class="my-submission-heading">Mi cuenta</h2>
-    <p class="my-submission-text">
-        <a href="MicrosoftIdentity/Account/EditProfile">
-            Editar mi perfíl
-        </a>
-    </p>
-</div>
-
-@if(aprobadas?.Count>0)
-{
-    <div class="form-layout mb-3">
-    <h2 class="my-submission-heading">Sugerencias aprobadas</h2>
-        <p class="my-submission-text">Estás son tus sugerencias activas.</p>
-
-    @foreach(var s in aprobadas)
-    {
-        <hr class="my-submission-separator" />
-        <div class="fw-bold sugerencia-detalle-sugerencia">
-            @s.Sugerencia
+<div class="narrow">
+    <div class="page-head">
+        <div>
+            <h1>Mi perfil</h1>
+            <p>@loggedInUsuario?.DisplayName</p>
         </div>
-            <p class="my-submission-text">
-            @s.FechaCreacion.ToString("dd.MM.yyyy")
-        </p>
-            <p class="my-submission-text">
-            Votos totales: @s.VotosDeUsuarios.Count
-        </p>
-            <p class="my-submission-text">
-            @s.Categoria.CategoriaNombre
-        </p>
-            <p class="my-submission-text">
-            @s.Descripcion
-        </p>
-        @if(s.SugerenciaEstado is not null)
-        {
-            <div class="fw-bold sugerencia-detalle-sugerencia">
-                @s.SugerenciaEstado.EstadoNombre
-            </div>
-            <p class="my-submission-text">
-                <NotaAdminTexto Sugerencia="s" />
-            </p>
-        }
+        <a class="btn" href="MicrosoftIdentity/Account/EditProfile">Editar perfil</a>
+    </div>
+
+    @if (sugerido is null)
+    {
+        <div class="card card-pad" aria-busy="true">
+            <div class="skeleton sk-line" style="width:40%"></div>
+            <div class="skeleton sk-line" style="width:80%"></div>
+            <div class="skeleton sk-line" style="width:60%"></div>
+        </div>
+    }
+    else if (sugerido.Count == 0)
+    {
+        <div class="card empty">
+            <h2>Todavía no hiciste sugerencias</h2>
+            <p>Cuando propongas un tema, vas a poder seguir su estado desde acá.</p>
+            <p style="margin-top:18px"><a class="btn btn-primary" href="Crear">Nueva sugerencia</a></p>
+        </div>
+    }
+    else
+    {
+        <div class="stack">
+            @Seccion("Esperando aprobación", "Un administrador todavía no las revisó.", pendientes)
+            @Seccion("Publicadas", "Están visibles y se pueden votar.", aprobadas)
+            @Seccion("Archivadas", "Ya no aparecen en el listado.", archivadas)
+            @Seccion("No aprobadas", "Un administrador decidió no publicarlas.", rechazadas)
+        </div>
     }
 </div>
-}
-@if (archivadas?.Count > 0)
-{
-    <div class="form-layout mb-3">
-        <h2 class="my-submission-heading">Sugerencias archivadas</h2>
-        <p class="my-submission-text">Estás son tus sugerencias archivadas.</p>
 
-        @foreach (var s in archivadas)
+@code {
+    private RenderFragment Seccion(string titulo, string ayuda, List<SugerenciaModel> lista) => __builder =>
+    {
+        if (lista is null || lista.Count == 0)
         {
-            <hr class="my-submission-separator" />
-            <div class="fw-bold sugerencia-detalle-sugerencia">
-                @s.Sugerencia
-            </div>
-            <p class="my-submission-text">
-                @s.FechaCreacion.ToString("dd.MM.yyyy")
-            </p>
-            <p class="my-submission-text">
-                Votos totales: @s.VotosDeUsuarios.Count
-            </p>
-            <p class="my-submission-text">
-                @s.Categoria.CategoriaNombre
-            </p>
-            <p class="my-submission-text">
-                @s.Descripcion
-            </p>
-            @if (s.SugerenciaEstado is not null)
-            {
-                <div class="fw-bold sugerencia-detalle-sugerencia">
-                    @s.SugerenciaEstado.EstadoNombre
-                </div>
-                <p class="my-submission-text">
-                    <NotaAdminTexto Sugerencia="s" />
-                </p>
-            }
+            return;
         }
-    </div>
-}
-@if (pendientes?.Count > 0)
-{
-    <div class="form-layout mb-3">
-        <h2 class="my-submission-heading">Sugerencias pendientes</h2>
-        <p class="my-submission-text">Estás son tus sugerencias que aún no han sido revisadas por un administrador.</p>
 
-        @foreach (var s in pendientes)
-        {
-            <hr class="my-submission-separator" />
-            <div class="fw-bold sugerencia-detalle-sugerencia">
-                @s.Sugerencia
-            </div>
-            <p class="my-submission-text">
-                @s.FechaCreacion.ToString("dd.MM.yyyy")
-            </p>
-            <p class="my-submission-text">
-                Votos totales: @s.VotosDeUsuarios.Count
-            </p>
-            <p class="my-submission-text">
-                @s.Categoria.CategoriaNombre
-            </p>
-            <p class="my-submission-text">
-                @s.Descripcion
-            </p>
-            @if (s.SugerenciaEstado is not null)
+        <section class="card card-pad">
+            <h2 class="panel-title">@titulo (@lista.Count)</h2>
+            <p class="panel-help">@ayuda</p>
+            @foreach (var s in lista)
             {
-                <div class="fw-bold sugerencia-detalle-sugerencia">
-                    @s.SugerenciaEstado.EstadoNombre
+                <div class="row-item" @key="s.Id">
+                    <a class="row-title" href="@($"Detalles/{s.Id}")">@s.Sugerencia</a>
+                    <div class="meta">
+                        <EstadoBadge Sugerencia="s" />
+                        <span class="badge">@s.Categoria?.CategoriaNombre</span>
+                        <span>@(s.VotosDeUsuarios?.Count ?? 0) votos · @s.FechaCreacion.ToString("d MMM yyyy", Cultura.Es)</span>
+                    </div>
+                    @if (s.SugerenciaEstado is not null)
+                    {
+                        <p class="row-note"><NotaAdminTexto Sugerencia="s" /></p>
+                    }
                 </div>
-                <p class="my-submission-text">
-                    <NotaAdminTexto Sugerencia="s" />
-                </p>
             }
-        }
-    </div>
-}
-@if (rechazadas?.Count > 0)
-{
-    <div class="form-layout mb-3">
-        <h2 class="my-submission-heading">Sugerencias rechazadas</h2>
-        <p class="my-submission-text">Estás son tus sugerencias que fueron rechazadas por un administrador.</p>
-
-        @foreach (var s in rechazadas)
-        {
-            <hr class="my-submission-separator" />
-            <div class="fw-bold sugerencia-detalle-sugerencia">
-                @s.Sugerencia
-            </div>
-            <p class="my-submission-text">
-                @s.FechaCreacion.ToString("dd.MM.yyyy")
-            </p>
-            <p class="my-submission-text">
-                Votos totales: @s.VotosDeUsuarios.Count
-            </p>
-            <p class="my-submission-text">
-                @s.Categoria.CategoriaNombre
-            </p>
-            <p class="my-submission-text">
-                @s.Descripcion
-            </p>
-            @if (s.SugerenciaEstado is not null)
-            {
-                <div class="fw-bold sugerencia-detalle-sugerencia">
-                    @s.SugerenciaEstado.EstadoNombre
-                </div>
-                <p class="my-submission-text">
-                    <NotaAdminTexto Sugerencia="s" />
-                </p>
-            }
-        }
-    </div>
+        </section>
+    };
 }

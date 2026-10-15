@@ -10,11 +10,10 @@ public partial class Index
     private string estadoSeleccionado = "Todos";
     private string textoBusqueda = "";
     bool isSortedByNew = true;
-    private bool showCategorias = false;
-    private bool showEstados = false;
-    
+
     protected override async Task OnInitializedAsync()
     {
+        notificador.Cambio += AlCambiarSugerencias;
         categorias = await categoryData.GetAllCategorias();
         estados = await statusData.GetAllEstados();
         await CargarVerificarUsuario();
@@ -129,14 +128,12 @@ public partial class Index
     private async Task OnCategoriaClick(string categoria = "Todas")
     {
         categoriaSeleccionada = categoria;
-        showCategorias = false;
         await FilterSugerencias();
     }
 
     private async Task OnEstadoClick(string estado = "Todos")
     {
         estadoSeleccionado = estado;
-        showEstados = false;
         await FilterSugerencias();
     }
 
@@ -161,21 +158,6 @@ public partial class Index
         }
     }
 
-    private string GetUpvoteTopText(SugerenciaModel sugerencia)
-    {
-        return Votos.TextoSuperior(sugerencia, loggedInUsuario?.Id);
-    }
-
-    private string GetUpvoteBottomText(SugerenciaModel sugerencia)
-    {
-        return Votos.TextoInferior(sugerencia, loggedInUsuario?.Id);
-    }
-
-    private void OpenDetails(SugerenciaModel sugerencia)
-    {
-        navManager.NavigateTo($"/Detalles/{sugerencia.Id}");
-    }
-
     private void CargarPaginaCrear()
     {
         if (loggedInUsuario is not null)
@@ -188,62 +170,36 @@ public partial class Index
         }
     }
 
-    private string SortedByNewClass(bool IsNew)
-    {
-        if (IsNew == isSortedByNew)
-        {
-            return "sort-selected";
-        }
-        else
-        {
-            return "";
-        }
-    }
-
-    private string GetVoteClass(SugerenciaModel sugerencia)
-    {
-        return Votos.Estado(sugerencia, loggedInUsuario?.Id) switch
-        {
-            EstadoVoto.SinVotos => "sugerencia-entry-sin-votos",
-            EstadoVoto.Votada => "sugerencia-entry-votada",
-            _ => "sugerencia-entry-no-votada"
-        };
-    }
-
-    private string GetSugerenciaEstadoClass(SugerenciaModel sugerencia)
-    {
-        return $"sugerencia-entry-estado-{Votos.SufijoEstadoCss(sugerencia)}";
-    }
-
-    private string GetCategoriaSeleccionada(string categoria = "Todas")
-    {
-        if (categoria == categoriaSeleccionada)
-        {
-            return "categoria-seleccionada";
-        }
-        else
-        {
-            return "";
-        }
-    }
-
-    private string GetEstadoSeleccionado(string estado = "Todos")
-    {
-        if (estado == estadoSeleccionado)
-        {
-            return "estado-seleccionado";
-        }
-        else
-        {
-            return "";
-        }
-    }
-
     private async Task ArchivarSugerencia()
     {
         archivandoSugerencia.Archivado = true;
         await sugerenciaData.UpdateSugerencia(archivandoSugerencia);
         sugerencias.Remove(archivandoSugerencia);
         archivandoSugerencia = null;
+    }
+
+    private async Task AlCambiarSugerencias(CambioSugerencia cambio)
+    {
+        await InvokeAsync(async () =>
+        {
+            if (sugerencias is null)
+            {
+                return;
+            }
+
+            if (cambio.Tipo == TipoCambio.Reinicio)
+            {
+                categorias = await categoryData.GetAllCategorias();
+                estados = await statusData.GetAllEstados();
+            }
+
+            await FilterSugerencias();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        notificador.Cambio -= AlCambiarSugerencias;
     }
 }

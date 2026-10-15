@@ -14,12 +14,15 @@ namespace SugerenciasAppLibrary.DataAccess
         public string EstadoNombreColeccion { get; private set; } = "estados";
         public string UsuarioNombreColeccion { get; private set; } = "usuarios";
         public string SugerenciaNombreColeccion { get; private set; } = "sugerencias";
+        public string ComentarioNombreColeccion { get; private set; } = "comentarios";
 
         public MongoClient Client { get; private set; }
         public IMongoCollection<CategoriaModel> CategoriaColeccion { get; private set; }
         public IMongoCollection<EstadoModel> EstadoColeccion { get; private set; }
         public IMongoCollection<UsuarioModel> UsuarioColeccion { get; private set; }
         public IMongoCollection<SugerenciaModel> SugerenciaColeccion { get; private set; }
+        public IMongoCollection<ComentarioModel> ComentarioColeccion { get; private set; }
+        public IMongoDatabase Database => _db;
         public DBConnection(IConfiguration config)
         {
             _config = config;
@@ -38,6 +41,7 @@ namespace SugerenciasAppLibrary.DataAccess
             EstadoColeccion = _db.GetCollection<EstadoModel>(EstadoNombreColeccion);
             UsuarioColeccion = _db.GetCollection<UsuarioModel>(UsuarioNombreColeccion);
             SugerenciaColeccion = _db.GetCollection<SugerenciaModel>(SugerenciaNombreColeccion);
+            ComentarioColeccion = _db.GetCollection<ComentarioModel>(ComentarioNombreColeccion);
         }
     }
 }

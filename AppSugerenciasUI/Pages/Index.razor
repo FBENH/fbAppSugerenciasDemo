@@ -1,4 +1,5 @@
-﻿@page "/"
+@page "/"
+@implements IDisposable
 @inject AuthenticationStateProvider authProvider
 @inject ICategoryData categoryData
 @inject IStatusData statusData
@@ -6,146 +7,102 @@
 @inject IUserData userData
 @inject NavigationManager navManager
 @inject ProtectedSessionStorage sessionStorage
+@inject NotificadorSugerencias notificador
 
-<h1 class="page-heading text-uppercase mb-4">Sugerencias</h1>
-<div class="sugerencia-container">
-    <button @onclick="CargarPaginaCrear" class="sugerir-btn btn btn-outline-light btn-lg text-uppercase">Sugerir</button>
+<PageTitle>Sugerencias de cursos</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>Sugerencias de cursos</h1>
+        <p>Proponé temas para nuevos cursos y votá los que más te interesen.</p>
+    </div>
+    <button class="btn btn-primary" @onclick="CargarPaginaCrear"><Icon Name="plus" /> Nueva sugerencia</button>
 </div>
 
-<div class="row">
-    <div class="sugerencias-count col-md-4 text-light mt-2">@sugerencias?.Count Sugerencias</div>
-    <div class="col-md-4 col-xl-5 btn-group">
-        <button class="btn btn-order @SortedByNewClass(true)" @onclick="(()=> OrderByNew(true))">Nuevas</button>
-        <button class="btn btn-order @SortedByNewClass(false)" @onclick="(()=> OrderByNew(false))">Popular</button>
+<div class="toolbar">
+    <div class="segmented" role="group" aria-label="Orden">
+        <button aria-pressed="@(isSortedByNew ? "true" : "false")" @onclick="(() => OrderByNew(true))">Nuevas</button>
+        <button aria-pressed="@(isSortedByNew ? "false" : "true")" @onclick="(() => OrderByNew(false))">Populares</button>
     </div>
-    <div class="col-md-4 col-xl-3 search-box">
-        <input type="text" placeholder="Buscar" 
-               aria-label="Caja de Busqueda" class="form-control rounded-control"
-               @oninput="((txt)=>InputBusqueda((string)txt.Value))" />
+    <div class="input-search">
+        <Icon Name="search" />
+        <input type="search" class="input" placeholder="Buscar sugerencias" aria-label="Buscar sugerencias"
+               value="@textoBusqueda" @oninput="(txt => InputBusqueda((string)txt.Value))" />
     </div>
-
-<div class="col-12 d-block d-md-none">
-    @if(categorias is not null && showCategorias)
-    {
-        <div class="categorias">
-            <span class="text-uppercase fw-bold">Categoría</span>
-            <div class="@GetCategoriaSeleccionada()" @onclick="(()=>OnCategoriaClick())">Todas</div>
-            @foreach(var c in categorias)
-            {
-                <div class="@GetCategoriaSeleccionada(c.CategoriaNombre)"
-                     @onclick="(()=>OnCategoriaClick(c.CategoriaNombre))">
-                     @c.CategoriaNombre
-                </div>           
-            }
-        </div>
-    }
-    else
-    {
-        <div class="categorias" @onclick="(()=> showCategorias= true)">
-            <span class="categoria-seleccionada">@categoriaSeleccionada</span>
-        </div>
-    }
-
-    @if(estados is not null && showEstados)
+    <select class="select" aria-label="Categoría" value="@categoriaSeleccionada"
+            @onchange="(e => OnCategoriaClick((string)e.Value))">
+        <option value="@SugerenciaFiltros.TodasLasCategorias">Categorías</option>
+        @foreach (var c in categorias ?? [])
         {
-            <div class="estados">
-                <span class="text-uppercase fw-bold">Estado</span>
-                <div class="@GetEstadoSeleccionado()" @onclick="(()=>OnEstadoClick())">Todos</div>
-                @foreach(var e in estados)
-                {
-                    <div class="@GetEstadoSeleccionado(e.EstadoNombre)" 
-                                @onclick="(()=>OnEstadoClick(e.EstadoNombre))">
-                                @e.EstadoNombre
-                                </div>
-                }
-            </div>
+            <option value="@c.CategoriaNombre">@c.CategoriaNombre</option>
         }
-    else
+    </select>
+    <select class="select" aria-label="Estado" value="@estadoSeleccionado"
+            @onchange="(e => OnEstadoClick((string)e.Value))">
+        <option value="@SugerenciaFiltros.TodosLosEstados">Estados</option>
+        @foreach (var e in estados ?? [])
         {
-            <div class="estados" @onclick="(()=> showEstados= true)">
-                <span class="estado-seleccionado">@estadoSeleccionado</span>
-            </div>
+            <option value="@e.EstadoNombre">@EstadoBadge.Nombre(e.EstadoNombre)</option>
         }
-        
-    </div>
-    </div>
-
-<div class="row">
-    <div class="col-md-8 col-xl-9">
-        @if(sugerencias is not null)
-        {
-            <Virtualize Items="@sugerencias" Context="s" OverscanCount="10">
-                <div class="sugerencia-entry">
-                    <div class="@GetVoteClass(s)" @onclick="(()=>Votar(s))">
-                        <div class="text-uppercase">@GetUpvoteTopText(s)</div>
-                        <span class="oi oi-caret-top entry-voto"></span>
-                        <div class="text-uppercase">@GetUpvoteBottomText(s)</div>
-                    </div>
-                    <div class="sugerencia-entry-text">
-                    <div class="sugerencia-entry-text-title" @onclick="(()=>OpenDetails(s))">
-                        @s.Sugerencia
-                        </div>                    
-                        @if (archivandoSugerencia is null || archivandoSugerencia.Id != s.Id)
-                        {
-                        <div class="sugerencia-entry-bottom">                                
-                           <div class="sugerencia-entry-text-categoria" @onclick="(()=>OpenDetails(s))">
-                                @s.Categoria?.CategoriaNombre
-                           </div> 
-                           <AuthorizeView Policy="Admin">
-                               <button @onclick="(()=>archivandoSugerencia= s)" class="btn sugerencia-entry-text-categoria btn-archivar">
-                                   Archivar
-                               </button>
-                           </AuthorizeView>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="sugerencia-entry-bottom">
-                                <button class="btn btn-archivar btn-archivar-confirmar" @onclick="ArchivarSugerencia">
-                                    Confirmar
-                                </button>
-                                <button class="btn btn-archivar btn-archivar-rechazar" @onclick="(()=>archivandoSugerencia=null)">
-                                    Cancelar
-                                </button>
-                            </div>
-                        }                        
-                    </div>
-                    <div class="sugerencia-entry-estado @GetSugerenciaEstadoClass(s)">
-                        <div class="sugerencia-entry-estado-text">
-                            @s.SugerenciaEstado?.EstadoNombre
-                        </div>
-                    </div>
-                </div>
-            </Virtualize>
-        }
-        else 
-        {
-            <div class="spinner"></div>
-        }       
-        
-    </div>    
-        <div class="col-md-4 col-xl-3 d-none d-md-block">
-            @if(categorias is not null)
-            {
-                <div class="categorias">
-                    <span class="text-uppercase fw-bold">Categoría</span>
-                    <div class="@GetCategoriaSeleccionada()" @onclick="(()=>OnCategoriaClick())">Todas</div>
-                    @foreach(var c in categorias)
-                    {
-                        <div class="@GetCategoriaSeleccionada(c.CategoriaNombre)" @onclick="(()=>OnCategoriaClick(c.CategoriaNombre))">@c.CategoriaNombre</div>
-                    }
-                </div>
-            }
-            @if(estados is not null)
-            {
-                <div class="estados">
-                    <span class="text-uppercase fw-bold">Estado</span>
-                    <div class="@GetEstadoSeleccionado()" @onclick="(()=>OnEstadoClick())">Todos</div>
-                    @foreach(var e in estados)
-                    {
-                        <div class="@GetEstadoSeleccionado(e.EstadoNombre)" @onclick="(()=>OnEstadoClick(e.EstadoNombre))">@e.EstadoNombre</div>
-                    }
-                </div>
-            }
-        </div>    
+    </select>
 </div>
+
+@if (sugerencias is null)
+{
+    <div class="list" aria-busy="true" aria-label="Cargando sugerencias">
+        @for (int i = 0; i < 4; i++)
+        {
+            <div class="item">
+                <div class="skeleton sk-vote"></div>
+                <div>
+                    <div class="skeleton sk-line" style="width:55%;margin-top:4px"></div>
+                    <div class="skeleton sk-line" style="width:85%"></div>
+                    <div class="skeleton sk-line" style="width:30%;margin-top:14px"></div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else if (sugerencias.Count == 0)
+{
+    <div class="card empty">
+        <h2>No hay sugerencias con estos filtros</h2>
+        <p>Probá con otra búsqueda o proponé el tema que estás buscando.</p>
+    </div>
+}
+else
+{
+    <div class="result-count" aria-live="polite">@sugerencias.Count @(sugerencias.Count == 1 ? "sugerencia" : "sugerencias")</div>
+    <div class="list">
+        <Virtualize Items="@sugerencias" Context="s" OverscanCount="10">
+            <article class="item" @key="s.Id">
+                <VotoBoton Sugerencia="s" UsuarioId="@loggedInUsuario?.Id" OnClick="(() => Votar(s))" />
+                <div class="item-body">
+                    <a class="item-title" href="@($"Detalles/{s.Id}")">@s.Sugerencia</a>
+                    @if (string.IsNullOrWhiteSpace(s.Descripcion) == false)
+                    {
+                        <p class="item-desc">@s.Descripcion</p>
+                    }
+                    <div class="meta">
+                        <EstadoBadge Sugerencia="s" />
+                        <span class="badge">@s.Categoria?.CategoriaNombre</span>
+                        <span>@s.Autor?.DisplayName · @s.FechaCreacion.ToString("d MMM yyyy", Cultura.Es)</span>
+                        <AuthorizeView Policy="Admin">
+                            <span class="meta-actions">
+                                @if (archivandoSugerencia?.Id == s.Id)
+                                {
+                                    <button class="btn btn-sm btn-danger" @onclick="ArchivarSugerencia">Confirmar archivo</button>
+                                    <button class="btn btn-sm btn-ghost" @onclick="(() => archivandoSugerencia = null)">Cancelar</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-ghost" @onclick="(() => archivandoSugerencia = s)">Archivar</button>
+                                }
+                            </span>
+                        </AuthorizeView>
+                    </div>
+                </div>
+            </article>
+        </Virtualize>
+    </div>
+}

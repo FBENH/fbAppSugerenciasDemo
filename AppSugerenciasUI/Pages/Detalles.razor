@@ -1,133 +1,159 @@
-﻿@page "/Detalles/{Id}"
+@page "/Detalles/{Id}"
+@implements IDisposable
 @inject AuthenticationStateProvider authProvider
+@inject IAuthorizationService authorizationService
 @inject IUserData userData
 @inject IMongoSugerenciaData sugerenciaData
+@inject IComentarioData comentarioData
 @inject NavigationManager navManager
 @inject IStatusData estadoData
+@inject NotificadorSugerencias notificador
 
-<h1 class="page-heading text-uppercase mb-4">Detalles de la sugerencia</h1>
-<div class="row justify-content-center detalle-form">
-    <div class="col-xl-8 col-lg-10 form-layout">
-        @if(sugerencia is not null)
-        {
-            <div class="row sugerencia-detalle-row">
-                <div class="col-11 sugerencia-detalle">
-                    <div>
-                        <div class="@GetVoteClass()" @onclick="Votar">
-                        <div class="text-uppercase">@GetUpvoteTopText()</div>
-                        <span class="oi oi-caret-top detalle-voto"></span>
-                        <div class="text-uppercase">@GetUpvoteBottomText()</div>
-                    </div>                    
-                    <div class="sugerencia-detalle-fecha">
-                        <div>@sugerencia.FechaCreacion.ToString("dd.MM.yyyy")</div>
-                    </div>
-                    </div>
-                    <div class="sugerencia-detalle-text">
-                        <div class="fw-bold mb-2 sugerencia-detalle-sugerencia">@sugerencia.Sugerencia</div>
-                        <div class="mb-2 sugerencia-detalle-autor">@sugerencia.Autor.DisplayName</div>
-                        <div class="mb-2 d-none d-md-block">@sugerencia.Descripcion</div>
-                        <div class="sugerencia-entry-text-categoria d-none d-md-block">
-                            @sugerencia.Categoria.CategoriaNombre
-                        </div>
-                    </div>
-                </div>                
-                <div class="col-1 close-button-section">
-                    <button class="btn btn-close" @onclick="ClosePage"></button>
-                </div>
-            </div>
-            <div class="row d-block d-md-none">
-                <div class="sugerencia-detalle-text">
-                    <div>@sugerencia.Descripcion</div>
-                    <div class="sugerencia-entry-text-categoria">@sugerencia.Categoria.CategoriaNombre</div>
-                </div>
-            </div>
-        }
-    </div>
-</div>
+<PageTitle>@(sugerencia?.Sugerencia ?? "Sugerencia") · Sugerencias</PageTitle>
 
-@if(sugerencia?.SugerenciaEstado is not null)
-{
-    <div class="row justify-content-center detalle-form">
-        <div class="col-xl-8 col-lg-10 sugerencia-resultados form-layout">
-            <div class="@GetEstadoClass()"></div>
-            <div class="sugerencia-detalle-estado-section">
-                <div class="sugerencia-detalle-estado fw-bold mb-2 sugerencia-detalle-sugerencia">
-                    @sugerencia.SugerenciaEstado.EstadoNombre
-                </div>
-                <div class="sugerencia-detalle-notas-admin">
-                    <NotaAdminTexto Sugerencia="sugerencia" />
-                </div>
-            </div>
-        </div>
-    </div>
-}
+<div class="narrow">
+    <a class="back-link" href="/"><Icon Name="back" /> Todas las sugerencias</a>
 
-@if(sugerencia is not null)
-{
-    <AuthorizeView Policy="Admin">
-        <div class="row justify-content-center detalle-form">
-            <div class="col-xl-8 col-lg-10 form-layout admin-detalles">
+    @if (cargando)
+    {
+        <div class="card card-pad" aria-busy="true">
+            <div class="detail">
+                <div class="skeleton sk-vote"></div>
                 <div>
-                    <div class="sugerencia-detalle-estado fw-bold sugerencia-detalle-sugerencia">
-                        Agregar estado
-                    </div>
-                    @if(string.IsNullOrWhiteSpace(settingEstado))
-                    {
-                        <div class="admin-set-estados">
-                            <button @onclick="@(()=>settingEstado="completado")"
-                                class="btn sugerencia-entry-text-categoria btn-archivar btn-estado-completado">
-                                Completado    
-                            </button>                       
-                            <button @onclick="@(()=>settingEstado="en revision")"
-                            class="btn sugerencia-entry-text-categoria btn-archivar btn-estado-en-revision">
-                                En revisión
-                            </button>                    
-                            <button @onclick="@(()=>settingEstado="proximamente")"
-                                class="btn sugerencia-entry-text-categoria btn-archivar btn-estado-proximamente">
-                                Proximamente    
-                            </button>                     
-                            <button @onclick="@(()=>settingEstado="rechazada")"
-                                class="btn sugerencia-entry-text-categoria btn-archivar btn-estado-rechazada">
-                                Rechazada    
-                            </button>
-                        </div>
-                    }
-                    else if(settingEstado=="completado")
-                    {
-                        <div>
-                            <input @bind="urlText" class="form-control rounded-control" type="url"
-                                    placeholder="https://..." aria-label="Content Url" />
-                            @if (urlInvalida)
-                            {
-                                <div class="text-danger small mt-1">Ingresá una URL completa que empiece con http:// o https://.</div>
-                            }
-                        </div>
-                        <div class="sugerencia-entry-bottom">
-                            <button class="btn btn-archivar btn-archivar-confirmar" 
-                            @onclick="CompletarSetEstado">
-                                Confirmar
-                            </button>
-                            <button class="btn btn-archivar btn-archivar-rechazar" 
-                            @onclick="(()=>settingEstado=null)">
-                                Cancelar
-                            </button>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="sugerencia-entry-bottom">
-                            <button class="btn btn-archivar btn-archivar-confirmar" 
-                            @onclick="CompletarSetEstado">
-                                Confirmar
-                            </button>
-                            <button class="btn btn-archivar btn-archivar-rechazar" 
-                            @onclick="(()=>settingEstado=null)">
-                                Cancelar
-                            </button>
-                        </div>
-                    }
+                    <div class="skeleton sk-line" style="width:60%;height:22px"></div>
+                    <div class="skeleton sk-line" style="width:35%"></div>
+                    <div class="skeleton sk-line" style="width:90%;margin-top:18px"></div>
                 </div>
             </div>
         </div>
-    </AuthorizeView>
-}
+    }
+    else if (sugerencia is null)
+    {
+        <div class="card card-pad empty">
+            <h2>No encontramos esta sugerencia</h2>
+            <p>Puede que haya sido archivada o que el link no sea correcto.</p>
+        </div>
+    }
+    else
+    {
+        <div class="stack">
+            <section class="card card-pad">
+                <div class="detail">
+                    <VotoBoton Sugerencia="sugerencia" UsuarioId="@loggedInUsuario?.Id" Grande="true" OnClick="Votar" />
+                    <div>
+                        <h1>@sugerencia.Sugerencia</h1>
+                        <div class="meta">
+                            <EstadoBadge Sugerencia="sugerencia" />
+                            @if (sugerencia.AprobadoParaMostrar == false)
+                            {
+                                <span class="badge badge-pendiente">@(sugerencia.Rechazado ? "No aprobada" : "Esperando aprobación")</span>
+                            }
+                            <span class="badge">@sugerencia.Categoria?.CategoriaNombre</span>
+                            <span>@sugerencia.Autor?.DisplayName · @sugerencia.FechaCreacion.ToString("d 'de' MMMM yyyy", Cultura.Es)</span>
+                        </div>
+                        @if (string.IsNullOrWhiteSpace(sugerencia.Descripcion) == false)
+                        {
+                            <p class="detail-desc">@sugerencia.Descripcion</p>
+                        }
+                    </div>
+                </div>
+            </section>
+
+            @if (sugerencia.SugerenciaEstado is not null)
+            {
+                <section class="status-panel" aria-label="Respuesta del equipo">
+                    <div class="section-title">Respuesta del equipo</div>
+                    <p><NotaAdminTexto Sugerencia="sugerencia" /></p>
+                </section>
+            }
+
+            @if (esAdmin)
+            {
+                <section class="card card-pad">
+                    <h2 class="panel-title">Cambiar estado</h2>
+                    <p class="panel-help">El autor ve el estado y la respuesta en esta página y en su perfil.</p>
+                    <div class="status-options" role="group" aria-label="Estado">
+                        @foreach (var opcion in OpcionesEstado)
+                        {
+                            <button type="button" class="btn btn-sm" aria-pressed="@(settingEstado == opcion.Clave ? "true" : "false")"
+                                    @onclick="(() => { settingEstado = opcion.Clave; urlInvalida = false; })">
+                                @opcion.Texto
+                            </button>
+                        }
+                    </div>
+                    @if (string.IsNullOrEmpty(settingEstado) == false)
+                    {
+                        @if (settingEstado == "completado")
+                        {
+                            <div class="field" style="margin:16px 0 0">
+                                <label class="field-label" for="url-recurso">Link al material</label>
+                                <input id="url-recurso" class="input @(urlInvalida ? "invalid" : "")" type="url"
+                                       placeholder="https://..." @bind="urlText" />
+                                @if (urlInvalida)
+                                {
+                                    <div class="validation-message">Ingresá una URL completa que empiece con http:// o https://.</div>
+                                }
+                            </div>
+                        }
+                        <p class="panel-help" style="margin:12px 0 0">Respuesta: @NotaAdmin.TextoParaEstado(settingEstado)</p>
+                        <div class="row-actions">
+                            <button class="btn btn-ghost" @onclick="(() => settingEstado = null)">Cancelar</button>
+                            <button class="btn btn-primary" @onclick="CompletarSetEstado">Guardar estado</button>
+                        </div>
+                    }
+                </section>
+            }
+
+            <section class="card card-pad" aria-labelledby="titulo-comentarios">
+                <h2 id="titulo-comentarios" class="panel-title">Comentarios (@(comentarios?.Count ?? 0))</h2>
+                @if (comentarios?.Count > 0)
+                {
+                    <div>
+                        @foreach (var c in comentarios)
+                        {
+                            <div class="row-item" @key="c.Id">
+                                <div class="meta" style="margin:0">
+                                    <strong style="color:var(--text)">@c.Autor?.DisplayName</strong>
+                                    @if (c.EsAdmin)
+                                    {
+                                        <span class="badge badge-en-revision">Equipo</span>
+                                    }
+                                    <span>@c.Fecha.ToString("d MMM yyyy, HH:mm", Cultura.Es)</span>
+                                    @if (esAdmin)
+                                    {
+                                        <span class="meta-actions">
+                                            <button class="btn btn-sm btn-ghost" @onclick="(() => EliminarComentario(c))">Eliminar</button>
+                                        </span>
+                                    }
+                                </div>
+                                <p style="white-space:pre-line">@c.Texto</p>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="panel-help">Todavía no hay comentarios.</p>
+                }
+
+                @if (loggedInUsuario is not null)
+                {
+                    <div class="field" style="margin:18px 0 0">
+                        <label class="field-label" for="nuevo-comentario">Agregar un comentario</label>
+                        <textarea id="nuevo-comentario" class="textarea" style="min-height:90px" maxlength="@ComentarioModel.LargoMaximo"
+                                  @bind="nuevoComentario" @bind:event="oninput"></textarea>
+                        <div class="field-count">@(nuevoComentario?.Length ?? 0)/@ComentarioModel.LargoMaximo</div>
+                    </div>
+                    <div class="row-actions" style="margin-top:4px">
+                        <button class="btn btn-primary" disabled="@(string.IsNullOrWhiteSpace(nuevoComentario) || enviandoComentario)"
+                                @onclick="CrearComentario">Comentar</button>
+                    </div>
+                }
+                else
+                {
+                    <p class="panel-help" style="margin:14px 0 0"><a href="MicrosoftIdentity/Account/SignIn">Iniciá sesión</a> para comentar.</p>
+                }
+            </section>
+        </div>
+    }
+</div>

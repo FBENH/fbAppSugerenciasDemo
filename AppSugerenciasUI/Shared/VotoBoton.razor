@@ -1,0 +1,23 @@
+<button type="button" class="vote @(Grande ? "vote-lg" : "") @Clase" @onclick="OnClick"
+        aria-pressed="@(Estado == EstadoVoto.Votada ? "true" : "false")"
+        title="@Titulo" aria-label="@($"{Titulo}. {Cantidad} votos")">
+    <Icon Name="up" />
+    <span class="vote-count">@Cantidad</span>
+</button>
+
+@code {
+    [Parameter, EditorRequired] public SugerenciaModel Sugerencia { get; set; }
+    [Parameter] public string UsuarioId { get; set; }
+    [Parameter] public bool Grande { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private int Cantidad => Sugerencia.VotosDeUsuarios?.Count ?? 0;
+    private EstadoVoto Estado => Votos.Estado(Sugerencia, UsuarioId);
+    private bool EsAutor => Votos.EsAutor(Sugerencia, UsuarioId);
+
+    private string Clase => EsAutor ? "is-own" : Estado == EstadoVoto.Votada ? "is-voted" : "";
+
+    private string Titulo => EsAutor
+        ? "No podés votar tu propia sugerencia"
+        : Estado == EstadoVoto.Votada ? "Quitar voto" : "Votar";
+}

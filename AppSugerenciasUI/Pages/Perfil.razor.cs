@@ -13,6 +13,7 @@ public partial class Perfil
         loggedInUsuario = await authProvider.GetUsuarioFromAuth(userData);
         if (loggedInUsuario is null)
         {
+            sugerido = [];
             return;
         }
 
@@ -25,10 +26,5 @@ public partial class Perfil
             pendientes = sugerido.Where(s => s.AprobadoParaMostrar == false && s.Rechazado == false).ToList();
             rechazadas = sugerido.Where(s => s.Rechazado).ToList();
         }
-    }
-
-    private void ClosePage()
-    {
-        navManager.NavigateTo("/");
     }
 }
