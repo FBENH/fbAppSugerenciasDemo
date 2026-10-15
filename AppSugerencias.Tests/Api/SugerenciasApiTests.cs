@@ -97,4 +97,26 @@ public class SugerenciasApiTests : IAsyncLifetime
         respuesta.EnsureSuccessStatusCode();
         Assert.Contains("/api/sugerencias/{id}", await respuesta.Content.ReadAsStringAsync());
     }
+
+    [Fact]
+    public async Task LaPlantillaDeB2CPermiteElOrigenDeB2C()
+    {
+        var respuesta = await _client.GetAsync("/b2c/plantilla.html");
+
+        respuesta.EnsureSuccessStatusCode();
+        Assert.Equal("https://portauth.b2clogin.com", Assert.Single(respuesta.Headers.GetValues("Access-Control-Allow-Origin")));
+    }
+
+    [Fact]
+    public async Task LaPlantillaDeB2CRespondeAlPreflight()
+    {
+        var pedido = new HttpRequestMessage(HttpMethod.Options, "/b2c/plantilla.html");
+        pedido.Headers.Add("Origin", "https://portauth.b2clogin.com");
+        pedido.Headers.Add("Access-Control-Request-Method", "GET");
+
+        var respuesta = await _client.SendAsync(pedido);
+
+        Assert.Equal(HttpStatusCode.NoContent, respuesta.StatusCode);
+        Assert.Equal("https://portauth.b2clogin.com", Assert.Single(respuesta.Headers.GetValues("Access-Control-Allow-Origin")));
+    }
 }
