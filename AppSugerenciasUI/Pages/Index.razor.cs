@@ -9,6 +9,7 @@ public partial class Index
     private string categoriaSeleccionada = "Todas";
     private string estadoSeleccionado = "Todos";
     private string textoBusqueda = "";
+    private readonly HashSet<string> votando = [];
     bool isSortedByNew = true;
 
     protected override async Task OnInitializedAsync()
@@ -141,12 +142,36 @@ public partial class Index
     {
         if (loggedInUsuario is not null)
         {
-            if (Votos.Alternar(sugerencia, loggedInUsuario.Id) is null)
+            // Mientras un voto se guarda, los clics siguientes sobre la misma sugerencia se ignoran.
+            if (votando.Add(sugerencia.Id) == false)
             {
                 return;
             }
 
-            await sugerenciaData.VotarSugerencia(sugerencia.Id, loggedInUsuario.Id);
+            try
+            {
+                if (Votos.Alternar(sugerencia, loggedInUsuario.Id) is null)
+                {
+                    return;
+                }
+
+                try
+                {
+                    await sugerenciaData.VotarSugerencia(sugerencia.Id, loggedInUsuario.Id);
+                }
+                catch (Exception ex)
+                {
+                    // Se deshace el cambio en pantalla; el voto no se guardó.
+                    Votos.Alternar(sugerencia, loggedInUsuario.Id);
+                    logger.LogWarning(ex, "No se pudo guardar el voto en {SugerenciaId}", sugerencia.Id);
+                    return;
+                }
+            }
+            finally
+            {
+                votando.Remove(sugerencia.Id);
+            }
+
             if (isSortedByNew == false)
             {
                 sugerencias = SugerenciaFiltros.Ordenar(sugerencias, ordenarPorNuevas: false);

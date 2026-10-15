@@ -26,6 +26,7 @@ public partial class Detalles
     private bool urlInvalida = false;
     private string nuevoComentario = "";
     private bool enviandoComentario;
+    private bool votando;
 
     protected async override Task OnInitializedAsync()
     {
@@ -103,12 +104,27 @@ public partial class Detalles
             return;
         }
 
-        if (Votos.Alternar(sugerencia, loggedInUsuario.Id) is null)
+        // Mientras un voto se guarda, los clics siguientes se ignoran.
+        if (votando || Votos.Alternar(sugerencia, loggedInUsuario.Id) is null)
         {
             return;
         }
 
-        await sugerenciaData.VotarSugerencia(sugerencia.Id, loggedInUsuario.Id);
+        votando = true;
+        try
+        {
+            await sugerenciaData.VotarSugerencia(sugerencia.Id, loggedInUsuario.Id);
+        }
+        catch (Exception ex)
+        {
+            // Se deshace el cambio en pantalla; el voto no se guardó.
+            Votos.Alternar(sugerencia, loggedInUsuario.Id);
+            logger.LogWarning(ex, "No se pudo guardar el voto en {SugerenciaId}", sugerencia.Id);
+        }
+        finally
+        {
+            votando = false;
+        }
     }
 
     private async Task CrearComentario()
