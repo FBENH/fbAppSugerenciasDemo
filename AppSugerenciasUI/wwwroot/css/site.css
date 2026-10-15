@@ -102,10 +102,7 @@ main.container { flex: 1; padding-top: 32px; padding-bottom: 64px; }
 
 .brand { display: flex; align-items: center; gap: 10px; color: var(--text); font-weight: 700; font-size: 1.05rem; }
 .brand:hover { text-decoration: none; }
-.brand-mark {
-    display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px;
-    background: var(--accent); color: var(--accent-text);
-}
+.brand-mark { display: block; width: 30px; height: 30px; }
 
 .nav { margin-left: auto; display: flex; align-items: center; gap: 4px; }
 .nav-link {
