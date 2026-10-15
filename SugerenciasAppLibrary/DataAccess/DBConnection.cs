@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
 using MongoDB.Driver;
-using SuegerenciasAppLibrary.Models;
+using SugerenciasAppLibrary.Models;
 
-namespace SuegerenciasAppLibrary.DataAccess
+namespace SugerenciasAppLibrary.DataAccess
 {
     public class DBConnection : IDBConnection
     {
@@ -23,7 +23,14 @@ namespace SuegerenciasAppLibrary.DataAccess
         public DBConnection(IConfiguration config)
         {
             _config = config;
-            Client = new MongoClient(_config.GetConnectionString(_connectionId));
+            string connectionString = _config.GetConnectionString(_connectionId);
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException(
+                    $"Falta la cadena de conexión '{_connectionId}'. Configurala con user-secrets o la variable de entorno ConnectionStrings__{_connectionId}.");
+            }
+
+            Client = new MongoClient(connectionString);
             DbName = config[key: "DatabaseName"];
             _db = Client.GetDatabase(DbName);
 

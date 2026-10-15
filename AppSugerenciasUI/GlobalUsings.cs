@@ -1,3 +1,4 @@
-﻿global using SuegerenciasAppLibrary.Models;
-global using SuegerenciasAppLibrary.DataAccess;
+﻿global using SugerenciasAppLibrary.Models;
+global using SugerenciasAppLibrary.DataAccess;
 global using AppSugerenciasUI.Helpers;
+global using SugerenciasAppLibrary.Logic;

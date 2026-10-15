@@ -1,4 +1,4 @@
-﻿namespace SuegerenciasAppLibrary.Models
+﻿namespace SugerenciasAppLibrary.Models
 {
     public class SugerenciaModel
     {
@@ -13,6 +13,7 @@
         public HashSet<string> VotosDeUsuarios { get; set; } = new();
         public EstadoModel SugerenciaEstado { get; set; }
         public string NotasAdmins { get; set; }
+        public string UrlRecurso { get; set; }
         public bool AprobadoParaMostrar { get; set; } = false;
         public bool Archivado { get; set; } = false;
         public bool Rechazado { get; set; } = false;

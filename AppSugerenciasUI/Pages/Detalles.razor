@@ -55,7 +55,7 @@
                     @sugerencia.SugerenciaEstado.EstadoNombre
                 </div>
                 <div class="sugerencia-detalle-notas-admin">
-                    @((MarkupString)sugerencia.NotasAdmins)
+                    <NotaAdminTexto Sugerencia="sugerencia" />
                 </div>
             </div>
         </div>
@@ -95,8 +95,12 @@
                     else if(settingEstado=="completado")
                     {
                         <div>
-                            <input @bind="urlText" class="form-control rounded-control" type="text"
-                                    placeholder="Url" aria-label="Content Url" />
+                            <input @bind="urlText" class="form-control rounded-control" type="url"
+                                    placeholder="https://..." aria-label="Content Url" />
+                            @if (urlInvalida)
+                            {
+                                <div class="text-danger small mt-1">Ingresá una URL completa que empiece con http:// o https://.</div>
+                            }
                         </div>
                         <div class="sugerencia-entry-bottom">
                             <button class="btn btn-archivar btn-archivar-confirmar" 

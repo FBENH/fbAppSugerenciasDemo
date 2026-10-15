@@ -1,8 +1,6 @@
-﻿
+﻿using Microsoft.Extensions.Caching.Memory;
 
-using Microsoft.Extensions.Caching.Memory;
-
-namespace SuegerenciasAppLibrary.DataAccess
+namespace SugerenciasAppLibrary.DataAccess
 {
     public class MongoCategoryData : ICategoryData
     {

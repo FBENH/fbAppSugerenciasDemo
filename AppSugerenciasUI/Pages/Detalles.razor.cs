@@ -11,6 +11,7 @@ public partial class Detalles
     private List<EstadoModel> estados;
     private string settingEstado = "";
     private string urlText = "";
+    private bool urlInvalida = false;
     protected async override Task OnInitializedAsync()
     {
         sugerencia = await sugerenciaData.GetSugerencia(Id);
@@ -20,34 +21,44 @@ public partial class Detalles
 
     private async Task CompletarSetEstado()
     {
+        string notas;
+        string url = null;
         switch (settingEstado)
         {
             case "completado":
-                if (string.IsNullOrWhiteSpace(urlText))
+                if (NotaAdmin.TryCrearUrlRecurso(urlText, out url) == false)
                 {
+                    urlInvalida = true;
                     return;
                 }
 
-                sugerencia.SugerenciaEstado = estados.Where(s => s.EstadoNombre.ToLower() == settingEstado.ToLower()).First();
-                sugerencia.NotasAdmins = $"Creamos un recurso sobre ese tema aquí: <a href={urlText}' target='_blank'>{urlText}</a>";
+                notas = NotaAdmin.TextoCompletado;
                 break;
             case "en revision":
-                sugerencia.SugerenciaEstado = estados.Where(s => s.EstadoNombre.ToLower() == settingEstado.ToLower()).First();
-                sugerencia.NotasAdmins = "Estamos evaluando esta sugerencia.";
+                notas = "Estamos evaluando esta sugerencia.";
                 break;
             case "proximamente":
-                sugerencia.SugerenciaEstado = estados.Where(s => s.EstadoNombre.ToLower() == settingEstado.ToLower()).First();
-                sugerencia.NotasAdmins = "Buena sugerencia,estamos creando recursos para abordar este tema.";
+                notas = "Buena sugerencia, estamos creando recursos para abordar este tema.";
                 break;
             case "rechazada":
-                sugerencia.SugerenciaEstado = estados.Where(s => s.EstadoNombre.ToLower() == settingEstado.ToLower()).First();
-                sugerencia.NotasAdmins = "Hemos decidido no implementar tu sugerencia en este momento.";
+                notas = "Hemos decidido no implementar tu sugerencia en este momento.";
                 break;
             default:
                 return;
         }
 
+        var estado = estados.FirstOrDefault(s => string.Equals(s.EstadoNombre, settingEstado, StringComparison.OrdinalIgnoreCase));
+        if (estado is null)
+        {
+            return;
+        }
+
+        sugerencia.SugerenciaEstado = estado;
+        sugerencia.NotasAdmins = notas;
+        sugerencia.UrlRecurso = url;
         settingEstado = null;
+        urlText = "";
+        urlInvalida = false;
         await sugerenciaData.UpdateSugerencia(sugerencia);
     }
 
@@ -58,53 +69,21 @@ public partial class Detalles
 
     private string GetUpvoteTopText()
     {
-        if (sugerencia.VotosDeUsuarios?.Count > 0)
-        {
-            return sugerencia.VotosDeUsuarios.Count.ToString("00");
-        }
-        else
-        {
-            if (sugerencia.Autor.Id == loggedInUsuario?.Id)
-            {
-                return "Esperando";
-            }
-            else
-            {
-                return "Click para";
-            }
-        }
+        return Votos.TextoSuperior(sugerencia, loggedInUsuario?.Id);
     }
 
     private string GetUpvoteBottomText()
     {
-        if (sugerencia.VotosDeUsuarios?.Count == 1)
-        {
-            return "Voto";
-        }
-
-        if (sugerencia.VotosDeUsuarios?.Count > 0 || sugerencia.Autor.Id == loggedInUsuario?.Id)
-        {
-            return "Votos";
-        }
-        else
-        {
-            return "Votar";
-        }
+        return Votos.TextoInferior(sugerencia, loggedInUsuario?.Id);
     }
 
     private async Task Votar()
     {
         if (loggedInUsuario is not null)
         {
-            if (sugerencia.Autor.Id == loggedInUsuario.Id)
+            if (Votos.Alternar(sugerencia, loggedInUsuario.Id) is null)
             {
-                //No se puede votar en tu propia sugerencia
                 return;
-            }
-
-            if (sugerencia.VotosDeUsuarios.Add(loggedInUsuario.Id) == false)
-            {
-                sugerencia.VotosDeUsuarios.Remove(loggedInUsuario.Id);
             }
 
             await sugerenciaData.VotarSugerencia(sugerencia.Id, loggedInUsuario.Id);
@@ -117,35 +96,16 @@ public partial class Detalles
 
     private string GetVoteClass()
     {
-        if (sugerencia.VotosDeUsuarios is null || sugerencia.VotosDeUsuarios.Count == 0)
+        return Votos.Estado(sugerencia, loggedInUsuario?.Id) switch
         {
-            return "sugerencia-detalle-sin-votos";
-        }
-        else if (sugerencia.VotosDeUsuarios.Contains(loggedInUsuario?.Id))
-        {
-            return "sugerencia-detalle-votada";
-        }
-        else
-        {
-            return "sugerencia-detalle-no-votada";
-        }
+            EstadoVoto.SinVotos => "sugerencia-detalle-sin-votos",
+            EstadoVoto.Votada => "sugerencia-detalle-votada",
+            _ => "sugerencia-detalle-no-votada"
+        };
     }
 
     private string GetEstadoClass()
     {
-        if (sugerencia is null || sugerencia.SugerenciaEstado is null)
-        {
-            return "sugerencia-detalle-estado-ninguno";
-        }
-
-        string output = sugerencia.SugerenciaEstado.EstadoNombre switch
-        {
-            "Completado" => "sugerencia-detalle-estado-completado",
-            "En revision" => "sugerencia-detalle-estado-en-revision",
-            "Proximamente" => "sugerencia-detalle-estado-proximamente",
-            "Rechazada" => "sugerencia-detalle-estado-rechazada",
-            _ => "sugerencia-detalle-estado-ninguno"
-        };
-        return output;
+        return $"sugerencia-detalle-estado-{Votos.SufijoEstadoCss(sugerencia)}";
     }
 }

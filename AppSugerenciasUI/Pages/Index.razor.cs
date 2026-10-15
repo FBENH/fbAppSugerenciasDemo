@@ -38,25 +38,25 @@ public partial class Index
                 loggedInUsuario.ObjectIdentifier = objectId;
             }
 
-            if (nombre.Equals(loggedInUsuario.Nombre) == false)
+            if (string.Equals(nombre, loggedInUsuario.Nombre) == false)
             {
                 isDirty = true;
                 loggedInUsuario.Nombre = nombre;
             }
 
-            if (apellido.Equals(loggedInUsuario.Apellido) == false)
+            if (string.Equals(apellido, loggedInUsuario.Apellido) == false)
             {
                 isDirty = true;
                 loggedInUsuario.Apellido = apellido;
             }
 
-            if (displayName.Equals(loggedInUsuario.DisplayName) == false)
+            if (string.Equals(displayName, loggedInUsuario.DisplayName) == false)
             {
                 isDirty = true;
                 loggedInUsuario.DisplayName = displayName;
             }
 
-            if (email.Equals(loggedInUsuario.Email) == false)
+            if (string.Equals(email, loggedInUsuario.Email) == false)
             {
                 isDirty = true;
                 loggedInUsuario.Email = email;
@@ -108,31 +108,8 @@ public partial class Index
 
     private async Task FilterSugerencias()
     {
-        var output = await sugerenciaData.GetAllSugerenciasAprobadas();
-        if (categoriaSeleccionada != "Todas")
-        {
-            output = output.Where(s => s.Categoria?.CategoriaNombre == categoriaSeleccionada).ToList();
-        }
-
-        if (estadoSeleccionado != "Todos")
-        {
-            output = output.Where(s => s.SugerenciaEstado?.EstadoNombre == estadoSeleccionado).ToList();
-        }
-
-        if (string.IsNullOrWhiteSpace(textoBusqueda) == false)
-        {
-            output = output.Where(s => s.Sugerencia.Contains(textoBusqueda, StringComparison.InvariantCultureIgnoreCase) || s.Descripcion.Contains(textoBusqueda, StringComparison.InvariantCultureIgnoreCase)).ToList();
-        }
-
-        if (isSortedByNew)
-        {
-            output = output.OrderByDescending(s => s.FechaCreacion).ToList();
-        }
-        else
-        {
-            output = output.OrderByDescending(s => s.VotosDeUsuarios.Count).ThenByDescending(s => s.FechaCreacion).ToList();
-        }
-
+        var aprobadas = await sugerenciaData.GetAllSugerenciasAprobadas();
+        var output = SugerenciaFiltros.Filtrar(aprobadas, categoriaSeleccionada, estadoSeleccionado, textoBusqueda, isSortedByNew);
         sugerencias = output;
         await GuardarEstadoDeFiltros();
     }
@@ -167,21 +144,15 @@ public partial class Index
     {
         if (loggedInUsuario is not null)
         {
-            if (sugerencia.Autor.Id == loggedInUsuario.Id)
+            if (Votos.Alternar(sugerencia, loggedInUsuario.Id) is null)
             {
-                //No se puede votar en tu propia sugerencia
                 return;
-            }
-
-            if (sugerencia.VotosDeUsuarios.Add(loggedInUsuario.Id) == false)
-            {
-                sugerencia.VotosDeUsuarios.Remove(loggedInUsuario.Id);
             }
 
             await sugerenciaData.VotarSugerencia(sugerencia.Id, loggedInUsuario.Id);
             if (isSortedByNew == false)
             {
-                sugerencias = sugerencias.OrderByDescending(s => s.VotosDeUsuarios.Count).ThenByDescending(s => s.FechaCreacion).ToList();
+                sugerencias = SugerenciaFiltros.Ordenar(sugerencias, ordenarPorNuevas: false);
             }
         }
         else
@@ -192,38 +163,12 @@ public partial class Index
 
     private string GetUpvoteTopText(SugerenciaModel sugerencia)
     {
-        if (sugerencia.VotosDeUsuarios?.Count > 0)
-        {
-            return sugerencia.VotosDeUsuarios.Count.ToString("00");
-        }
-        else
-        {
-            if (sugerencia.Autor.Id == loggedInUsuario?.Id)
-            {
-                return "Esperando";
-            }
-            else
-            {
-                return "Click para";
-            }
-        }
+        return Votos.TextoSuperior(sugerencia, loggedInUsuario?.Id);
     }
 
     private string GetUpvoteBottomText(SugerenciaModel sugerencia)
     {
-        if (sugerencia.VotosDeUsuarios?.Count == 1)
-        {
-            return "Voto";
-        }
-
-        if (sugerencia.VotosDeUsuarios?.Count > 0 || sugerencia.Autor.Id == loggedInUsuario?.Id)
-        {
-            return "Votos";
-        }
-        else
-        {
-            return "Votar";
-        }
+        return Votos.TextoInferior(sugerencia, loggedInUsuario?.Id);
     }
 
     private void OpenDetails(SugerenciaModel sugerencia)
@@ -257,36 +202,17 @@ public partial class Index
 
     private string GetVoteClass(SugerenciaModel sugerencia)
     {
-        if (sugerencia.VotosDeUsuarios is null || sugerencia.VotosDeUsuarios.Count == 0)
+        return Votos.Estado(sugerencia, loggedInUsuario?.Id) switch
         {
-            return "sugerencia-entry-sin-votos";
-        }
-        else if (sugerencia.VotosDeUsuarios.Contains(loggedInUsuario?.Id))
-        {
-            return "sugerencia-entry-votada";
-        }
-        else
-        {
-            return "sugerencia-entry-no-votada";
-        }
+            EstadoVoto.SinVotos => "sugerencia-entry-sin-votos",
+            EstadoVoto.Votada => "sugerencia-entry-votada",
+            _ => "sugerencia-entry-no-votada"
+        };
     }
 
     private string GetSugerenciaEstadoClass(SugerenciaModel sugerencia)
     {
-        if (sugerencia is null || sugerencia.SugerenciaEstado is null)
-        {
-            return "sugerencia-entry-estado-ninguno";
-        }
-
-        string output = sugerencia.SugerenciaEstado.EstadoNombre switch
-        {
-            "Completado" => "sugerencia-entry-estado-completado",
-            "En revision" => "sugerencia-entry-estado-en-revision",
-            "Proximamente" => "sugerencia-entry-estado-proximamente",
-            "Rechazada" => "sugerencia-entry-estado-rechazada",
-            _ => "sugerencia-entry-estado-ninguno"
-        };
-        return output;
+        return $"sugerencia-entry-estado-{Votos.SufijoEstadoCss(sugerencia)}";
     }
 
     private string GetCategoriaSeleccionada(string categoria = "Todas")
@@ -319,6 +245,5 @@ public partial class Index
         await sugerenciaData.UpdateSugerencia(archivandoSugerencia);
         sugerencias.Remove(archivandoSugerencia);
         archivandoSugerencia = null;
-        //await FilterSugerencias();
     }
 }

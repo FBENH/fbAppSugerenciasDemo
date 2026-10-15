@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
 
@@ -6,11 +6,13 @@ namespace AppSugerenciasUI;
 
 public static class RegisterServices
 {
-    public static void ConfigureServices(this WebApplicationBuilder builder) 
+    public static void ConfigureServices(this WebApplicationBuilder builder)
     {
-        // Add services to the container.
         builder.Services.AddRazorPages();
-        builder.Services.AddServerSideBlazor().AddMicrosoftIdentityConsentHandler();
+        builder.Services.AddRazorComponents()
+            .AddInteractiveServerComponents()
+            .AddMicrosoftIdentityConsentHandler();
+        builder.Services.AddCascadingAuthenticationState();
         builder.Services.AddMemoryCache();
         builder.Services.AddControllersWithViews().AddMicrosoftIdentityUI();
 
@@ -28,7 +30,7 @@ public static class RegisterServices
         builder.Services.AddSingleton<IDBConnection, DBConnection>();
         builder.Services.AddSingleton<ICategoryData, MongoCategoryData>();
         builder.Services.AddSingleton<IStatusData, MongoStatusData>();
-        builder.Services.AddSingleton<IMongoSugerenciaData,MongoSugerenciaData>();
-        builder.Services.AddSingleton<IUserData,MongoUserData>();
+        builder.Services.AddSingleton<IMongoSugerenciaData, MongoSugerenciaData>();
+        builder.Services.AddSingleton<IUserData, MongoUserData>();
     }
 }
